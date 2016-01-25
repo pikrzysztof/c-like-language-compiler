@@ -1,15 +1,16 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-missing-signatures #-}
 {-# LANGUAGE CPP,MagicHash #-}
-{-# LINE 3 "src/Gramatyka/LexLatte.x" #-}
+{-# LINE 3 "Gramatyka/LexLatte.x" #-}
 
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 {-# OPTIONS_GHC -w #-}
 module Gramatyka.LexLatte where
 
 
-import Data.Char (ord)
+
 import qualified Data.Bits
 import Data.Word (Word8)
+import Data.Char (ord)
 
 #if __GLASGOW_HASKELL__ >= 603
 #include "ghcconfig.h"
@@ -42,7 +43,7 @@ alex_deflt :: AlexAddr
 alex_deflt = AlexA# "\xff\xff\x11\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x11\x00\x11\x00\x12\x00\x12\x00\x14\x00\x14\x00\x16\x00\xff\xff\x16\x00\xff\xff\x11\x00\x1d\x00\x1d\x00\x20\x00\x20\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x22\x00\x22\x00\x22\x00\x21\x00\x21\x00\x21\x00\x21\x00\x22\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"#
 
 alex_accept = listArray (0::Int,45) [AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAcc (alex_action_4),AlexAcc (alex_action_4),AlexAcc (alex_action_4),AlexAcc (alex_action_4),AlexAcc (alex_action_4),AlexAcc (alex_action_4),AlexAcc (alex_action_5),AlexAcc (alex_action_6),AlexAcc (alex_action_7)]
-{-# LINE 39 "src/Gramatyka/LexLatte.x" #-}
+{-# LINE 40 "Gramatyka/LexLatte.x" #-}
 
 
 tok :: (Posn -> String -> Token) -> (Posn -> String -> Token)
@@ -105,7 +106,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "<=" 18 (b "+" 9 (b "(" 5 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 4 N N)) (b ")null" 7 (b ")" 6 N N) (b "*" 8 N N))) (b "." 14 (b "-" 12 (b "," 11 (b "++" 10 N N) N) (b "--" 13 N N)) (b ";" 16 (b "/" 15 N N) (b "<" 17 N N)))) (b "if" 27 (b "class" 23 (b ">" 21 (b "==" 20 (b "=" 19 N N) N) (b ">=" 22 N N)) (b "extends" 25 (b "else" 24 N N) (b "false" 26 N N))) (b "while" 32 (b "true" 30 (b "return" 29 (b "new" 28 N N) N) (b "void" 31 N N)) (b "||" 34 (b "{" 33 N N) (b "}" 35 N N))))
+resWords = b "==" 20 (b "++" 10 (b "(" 5 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 4 N N)) (b "*" 8 (b ")null" 7 (b ")" 6 N N) N) (b "+" 9 N N))) (b "/" 15 (b "--" 13 (b "-" 12 (b "," 11 N N) N) (b "." 14 N N)) (b "<=" 18 (b "<" 17 (b ";" 16 N N) N) (b "=" 19 N N)))) (b "new" 30 (b "else" 25 (b "boolean" 23 (b ">=" 22 (b ">" 21 N N) N) (b "class" 24 N N)) (b "if" 28 (b "false" 27 (b "extends" 26 N N) N) (b "int" 29 N N))) (b "while" 35 (b "true" 33 (b "string" 32 (b "return" 31 N N) N) (b "void" 34 N N)) (b "||" 37 (b "{" 36 N N) (b "}" 38 N N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

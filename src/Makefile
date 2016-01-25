@@ -1,7 +1,7 @@
 all:
 	happy -gca Gramatyka/ParLatte.y
 	alex -g Gramatyka/LexLatte.x
-	ghc --make Gramatyka/TestLatte.hs -o Gramatyka/TestLatte
+	ghc --make -Wall latc.hs -o latc
 
 clean:
 	-rm -f Gramatyka/*.log Gramatyka/*.aux Gramatyka/*.hi Gramatyka/*.o Gramatyka/*.dvi
@@ -15,5 +15,7 @@ distclean: clean
 
 konflikty:
 	bnfc --haskell-gadt -p Gramatyka Latte.cf
-	happy -gcad Gramatyka/ParLatte.y
+	happy -i -gcad Gramatyka/ParLatte.y
 	alex -g Gramatyka/LexLatte.x
+
+tests:

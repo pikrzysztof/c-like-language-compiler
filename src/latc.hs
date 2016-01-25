@@ -10,8 +10,9 @@ import Gramatyka.LexLatte
 import Gramatyka.ParLatte
 --import Gramatyka.SkelLatte
 import Gramatyka.PrintLatte
---import Gramatyka.AbsLatte
-
+import Gramatyka.AbsLatte
+import Checker
+import Control.Monad.Trans.Except
 
 
 
@@ -27,31 +28,40 @@ type Verbosity = Int
 putStrV :: Verbosity -> String -> IO ()
 putStrV v s = if v > 1 then putStrLn s else return ()
 
-runFile :: (Print a, Show a) => Verbosity -> ParseFun a -> FilePath -> IO ()
+runFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
 runFile v p f = -- putStrLn f >>
   readFile f >>= run v p
 
-run :: (Print a, Show a) => Verbosity -> ParseFun a -> String -> IO ()
-run v p s = let ts = myLLexer s in case p ts of
-           Bad str  -> do putStrLn "ERROR\nParse              Failed...\n"
-                          putStrV v "Tokens:"
-                          putStrV v $ show ts
-                          putStrLn str
-                          exitFailure
-           Ok  tree -> do putStrLn "OK\n\nParse Successful!"
-                          showTree v tree
-                          exitSuccess
-
+run :: Verbosity -> ParseFun Program -> String -> IO ()
+run v p s = do
+  let ts = myLLexer s
+  case p ts of
+    Bad str  -> do
+      putStrLn "ERROR\nParse              Failed..."
+      putStrV v "Tokens:"
+      putStrV v $ show ts
+      putStrLn str
+      exitFailure
+    Ok tree -> do
+      showTree v tree
+      let checked = runExcept $ checkTree tree
+      case checked of
+        Left err -> do
+          putStrLn (show err)
+          exitFailure
+        Right newTree -> do
+          putStrLn (show newTree)
+          exitSuccess
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
-showTree v tree
- = do
-      putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
-      putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
+showTree v tree = do
+  putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
+  putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
 
 main :: IO ()
-main = do args <- getArgs
-          case args of
-            [] -> hGetContents stdin >>= run 2 pProgram
-            "-v":fs -> mapM_ (runFile 2 pProgram) fs
-            fs -> mapM_ (runFile 0 pProgram) fs
+main = do
+  args <- getArgs
+  case args of
+    [] -> hGetContents stdin >>= run 2 pProgram
+    "-v":fs -> mapM_ (runFile 2 (pProgram :: [Token] -> Err Program)) fs
+    fs -> mapM_ (runFile 0 pProgram) fs

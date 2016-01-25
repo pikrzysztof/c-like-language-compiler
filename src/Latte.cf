@@ -9,9 +9,11 @@ ClsDef.    TopDef   ::= "class" Ident "{" [ClsBowel] "}" ;
 ClsExtDef. TopDef   ::= "class" Ident "extends" Ident "{" [ClsBowel] "}" ;
 
 -- MethodBowels --------------------------------------------
-MemberDef. ClsBowel ::= Type [Item] ";" ;
+MemberDef. ClsBowel ::= Type [Ident] ";" ;
 MethodDef. ClsBowel ::= Type Ident "(" [Arg] ")" Block ;
 separator  ClsBowel  "" ;
+
+separator Ident "," ;
 
 -- Statements ----------------------------------------------
 Blk.       Block ::= "{" [Stmt] "}" ;
@@ -24,8 +26,8 @@ Init.      Item ::= Ident "=" Expr ;
 separator  nonempty Item "," ;
 Ass.       Stmt ::= Expr "=" Expr  ";" ;
 --AssMember. Stmt ::= Ident "." Ident "=" Expr  ";" ;
-Incr.      Stmt ::= Ident "++"  ";" ;
-Decr.      Stmt ::= Ident "--"  ";" ;
+Incr.      Stmt ::= Expr "++"  ";" ;
+Decr.      Stmt ::= Expr "--"  ";" ;
 Ret.       Stmt ::= "return" Expr ";" ;
 VRet.      Stmt ::= "return" ";" ;
 Cond.      Stmt ::= "if" "(" Expr ")" Stmt ;
@@ -35,11 +37,13 @@ SExp.      Stmt ::= Expr  ";" ;
 
 
 -- Types ---------------------------------------------------
--- Int.       Type ::= "int" ;
--- Str.       Type ::= "string" ;
--- Bool.      Type ::= "boolean" ;
+Int.       Type ::= "int" ;
+Str.       Type ::= "string" ;
+Bool.      Type ::= "boolean" ;
 IdentType. Type ::= Ident ;
 Void.      Type ::= "void" ;
+-- _.         Type ::= Type ;
+-- _.         Type ::= Type ;
 internal   Fun. Type ::= Type "(" [Type] ")" ;
 separator  Type "," ;
 
@@ -61,6 +65,25 @@ EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
 ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
 EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
 EOr.       Expr  ::= Expr1 "||" Expr ;
+
+internal TECast.     Expr6 ::= "{" Type "}" "(" Ident ")null" ;
+internal TEVar.      Expr6 ::= "{" Type "}" Ident;
+internal TEMember.   Expr5 ::= "{" Type "}" Expr5 "." Ident; --daje konflikt
+internal TEConstr.   Expr6 ::= "{" Type "}" "new" Ident ;
+internal TELitInt.   Expr6 ::= "{" Type "}" Integer ;
+internal TELitTrue.  Expr6 ::= "{" Type "}" "true" ;
+internal TELitFalse. Expr6 ::= "{" Type "}" "false" ;
+internal TEMethApp.  Expr5 ::= "{" Type "}" Expr5 "." Ident "(" [Expr] ")" ; --daje konflikt
+internal TEApp.      Expr6 ::= "{" Type "}" Ident "(" [Expr] ")" ;
+internal TEString.   Expr6 ::= "{" Type "}" String ;
+internal TNeg.       Expr5 ::= "{" Type "}" "-" Expr6 ;
+internal TNot.       Expr5 ::= "{" Type "}" "!" Expr6 ;
+internal TEMul.      Expr4 ::= "{" Type "}" Expr4 MulOp Expr5 ;
+internal TEAdd.      Expr3 ::= "{" Type "}" Expr3 AddOp Expr4 ;
+internal TERel.      Expr2 ::= "{" Type "}" Expr2 RelOp Expr3 ;
+internal TEAnd.      Expr1 ::= "{" Type "}" Expr2 "&&" Expr1 ;
+internal TEOr.       Expr  ::= "{" Type "}" Expr1 "||" Expr ;
+
 coercions  Expr 6 ;
 separator  Expr "," ;
 

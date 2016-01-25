@@ -13,8 +13,14 @@ $(LEX).hs: $(LEX).x
 	alex --ghc $^ -o $@
 
 
-$(TARGET_FILE): $(PAR).hs $(LEX).hs $(MAIN_SRC_FILE)
+$(TARGET_FILE): $(PAR).hs $(LEX).hs $(MAIN_SRC_FILE) $(SRC)/*.hs
 	ghc -isrc -Wall --make $(MAIN_SRC_FILE) -o $(TARGET_FILE)
 
 clean:
 	rm -f $(GRAM)/*.{o,hi} $(SRC)/latc.{hi,o} $(SRC)/$(TARGET_FILE) $(TARGET_FILE)
+
+tests: $(TARGET_FILE)
+	./test.sh
+
+test:
+	make tests

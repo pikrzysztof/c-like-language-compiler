@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE GADTs #-}
 module Gramatyka.SkelLatte where
 
@@ -18,15 +17,15 @@ transTree t = case t of
   ClsDef i clsbowels -> failure t
   ClsExtDef i0 i1 clsbowels2 -> failure t
   Argument type' i -> failure t
-  MemberDef type' items -> failure t
+  MemberDef type' is -> failure t
   MethodDef type' i args block -> failure t
   Blk stmts -> failure t
   Empty  -> failure t
   BStmt block -> failure t
   Decl type' items -> failure t
   Ass expr0 expr1 -> failure t
-  Incr i -> failure t
-  Decr i -> failure t
+  Incr expr -> failure t
+  Decr expr -> failure t
   Ret expr -> failure t
   VRet  -> failure t
   Cond expr stmt -> failure t
@@ -35,6 +34,9 @@ transTree t = case t of
   SExp expr -> failure t
   NoInit i -> failure t
   Init i expr -> failure t
+  Int  -> failure t
+  Str  -> failure t
+  Bool  -> failure t
   IdentType i -> failure t
   Void  -> failure t
   Fun type' types -> failure t
@@ -55,6 +57,23 @@ transTree t = case t of
   ERel expr0 relop1 expr2 -> failure t
   EAnd expr0 expr1 -> failure t
   EOr expr0 expr1 -> failure t
+  TECast type' i -> failure t
+  TEVar type' i -> failure t
+  TEMember type' expr i -> failure t
+  TEConstr type' i -> failure t
+  TELitInt type' n -> failure t
+  TELitTrue type' -> failure t
+  TELitFalse type' -> failure t
+  TEMethApp type' expr i exprs -> failure t
+  TEApp type' i exprs -> failure t
+  TEString type' str -> failure t
+  TNeg type' expr -> failure t
+  TNot type' expr -> failure t
+  TEMul type' expr0 mulop1 expr2 -> failure t
+  TEAdd type' expr0 addop1 expr2 -> failure t
+  TERel type' expr0 relop1 expr2 -> failure t
+  TEAnd type' expr0 expr1 -> failure t
+  TEOr type' expr0 expr1 -> failure t
   Plus  -> failure t
   Minus  -> failure t
   Times  -> failure t
@@ -84,7 +103,7 @@ transArg t = case t of
 
 transClsBowel :: ClsBowel -> Result
 transClsBowel t = case t of
-  MemberDef type' items -> failure t
+  MemberDef type' is -> failure t
   MethodDef type' i args block -> failure t
 
 transBlock :: Block -> Result
@@ -97,8 +116,8 @@ transStmt t = case t of
   BStmt block -> failure t
   Decl type' items -> failure t
   Ass expr0 expr1 -> failure t
-  Incr i -> failure t
-  Decr i -> failure t
+  Incr expr -> failure t
+  Decr expr -> failure t
   Ret expr -> failure t
   VRet  -> failure t
   Cond expr stmt -> failure t
@@ -113,6 +132,9 @@ transItem t = case t of
 
 transType :: Type -> Result
 transType t = case t of
+  Int  -> failure t
+  Str  -> failure t
+  Bool  -> failure t
   IdentType i -> failure t
   Void  -> failure t
   Fun type' types -> failure t
@@ -136,6 +158,23 @@ transExpr t = case t of
   ERel expr0 relop1 expr2 -> failure t
   EAnd expr0 expr1 -> failure t
   EOr expr0 expr1 -> failure t
+  TECast type' i -> failure t
+  TEVar type' i -> failure t
+  TEMember type' expr i -> failure t
+  TEConstr type' i -> failure t
+  TELitInt type' n -> failure t
+  TELitTrue type' -> failure t
+  TELitFalse type' -> failure t
+  TEMethApp type' expr i exprs -> failure t
+  TEApp type' i exprs -> failure t
+  TEString type' str -> failure t
+  TNeg type' expr -> failure t
+  TNot type' expr -> failure t
+  TEMul type' expr0 mulop1 expr2 -> failure t
+  TEAdd type' expr0 addop1 expr2 -> failure t
+  TERel type' expr0 relop1 expr2 -> failure t
+  TEAnd type' expr0 expr1 -> failure t
+  TEOr type' expr0 expr1 -> failure t
 
 transAddOp :: AddOp -> Result
 transAddOp t = case t of

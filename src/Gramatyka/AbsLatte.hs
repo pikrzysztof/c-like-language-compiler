@@ -30,15 +30,15 @@ data Tree :: Tag -> * where
     ClsDef :: Ident -> [ClsBowel] -> Tree TopDef_
     ClsExtDef :: Ident -> Ident -> [ClsBowel] -> Tree TopDef_
     Argument :: Type -> Ident -> Tree Arg_
-    MemberDef :: Type -> [Item] -> Tree ClsBowel_
+    MemberDef :: Type -> [Ident] -> Tree ClsBowel_
     MethodDef :: Type -> Ident -> [Arg] -> Block -> Tree ClsBowel_
     Blk :: [Stmt] -> Tree Block_
     Empty :: Tree Stmt_
     BStmt :: Block -> Tree Stmt_
     Decl :: Type -> [Item] -> Tree Stmt_
     Ass :: Expr -> Expr -> Tree Stmt_
-    Incr :: Ident -> Tree Stmt_
-    Decr :: Ident -> Tree Stmt_
+    Incr :: Expr -> Tree Stmt_
+    Decr :: Expr -> Tree Stmt_
     Ret :: Expr -> Tree Stmt_
     VRet :: Tree Stmt_
     Cond :: Expr -> Stmt -> Tree Stmt_
@@ -47,9 +47,15 @@ data Tree :: Tag -> * where
     SExp :: Expr -> Tree Stmt_
     NoInit :: Ident -> Tree Item_
     Init :: Ident -> Expr -> Tree Item_
+
+    Int :: Tree Type_
+    Null :: Tree Type_
+    Str :: Tree Type_
+    Bool :: Tree Type_
     IdentType :: Ident -> Tree Type_
     Void :: Tree Type_
     Fun :: Type -> [Type] -> Tree Type_
+
     ECast :: Ident -> Tree Expr_
     EVar :: Ident -> Tree Expr_
     EMember :: Expr -> Ident -> Tree Expr_
@@ -67,6 +73,25 @@ data Tree :: Tag -> * where
     ERel :: Expr -> RelOp -> Expr -> Tree Expr_
     EAnd :: Expr -> Expr -> Tree Expr_
     EOr :: Expr -> Expr -> Tree Expr_
+
+    TECast :: Type -> Ident -> Tree Expr_
+    TEVar :: Type -> Ident -> Tree Expr_
+    TEMember :: Type -> Expr -> Ident -> Tree Expr_
+    TEConstr :: Type -> Ident -> Tree Expr_
+    TELitInt :: Type -> Integer -> Tree Expr_
+    TELitTrue :: Type -> Tree Expr_
+    TELitFalse :: Type -> Tree Expr_
+    TEMethApp :: Type -> Expr -> Ident -> [Expr] -> Tree Expr_
+    TEApp :: Type -> Ident -> [Expr] -> Tree Expr_
+    TEString :: Type -> String -> Tree Expr_
+    TNeg :: Type -> Expr -> Tree Expr_
+    TNot :: Type -> Expr -> Tree Expr_
+    TEMul :: Type -> Expr -> MulOp -> Expr -> Tree Expr_
+    TEAdd :: Type -> Expr -> AddOp -> Expr -> Tree Expr_
+    TERel :: Type -> Expr -> RelOp -> Expr -> Tree Expr_
+    TEAnd :: Type -> Expr -> Expr -> Tree Expr_
+    TEOr :: Type -> Expr -> Expr -> Tree Expr_
+
     Plus :: Tree AddOp_
     Minus :: Tree AddOp_
     Times :: Tree MulOp_
@@ -87,14 +112,14 @@ instance Compos Tree where
       ClsDef i clsbowels -> r ClsDef `a` f i `a` foldr (a . a (r (:)) . f) (r []) clsbowels
       ClsExtDef i0 i1 clsbowels2 -> r ClsExtDef `a` f i0 `a` f i1 `a` foldr (a . a (r (:)) . f) (r []) clsbowels2
       Argument type' i -> r Argument `a` f type' `a` f i
-      MemberDef type' items -> r MemberDef `a` f type' `a` foldr (a . a (r (:)) . f) (r []) items
+      MemberDef type' is -> r MemberDef `a` f type' `a` foldr (a . a (r (:)) . f) (r []) is
       MethodDef type' i args block -> r MethodDef `a` f type' `a` f i `a` foldr (a . a (r (:)) . f) (r []) args `a` f block
       Blk stmts -> r Blk `a` foldr (a . a (r (:)) . f) (r []) stmts
       BStmt block -> r BStmt `a` f block
       Decl type' items -> r Decl `a` f type' `a` foldr (a . a (r (:)) . f) (r []) items
       Ass expr0 expr1 -> r Ass `a` f expr0 `a` f expr1
-      Incr i -> r Incr `a` f i
-      Decr i -> r Decr `a` f i
+      Incr expr -> r Incr `a` f expr
+      Decr expr -> r Decr `a` f expr
       Ret expr -> r Ret `a` f expr
       Cond expr stmt -> r Cond `a` f expr `a` f stmt
       CondElse expr stmt0 stmt1 -> r CondElse `a` f expr `a` f stmt0 `a` f stmt1
@@ -117,6 +142,23 @@ instance Compos Tree where
       ERel expr0 relop1 expr2 -> r ERel `a` f expr0 `a` f relop1 `a` f expr2
       EAnd expr0 expr1 -> r EAnd `a` f expr0 `a` f expr1
       EOr expr0 expr1 -> r EOr `a` f expr0 `a` f expr1
+      TECast type' i -> r TECast `a` f type' `a` f i
+      TEVar type' i -> r TEVar `a` f type' `a` f i
+      TEMember type' expr i -> r TEMember `a` f type' `a` f expr `a` f i
+      TEConstr type' i -> r TEConstr `a` f type' `a` f i
+      TELitInt type' n -> r TELitInt `a` f type' `a` r n
+      TELitTrue type' -> r TELitTrue `a` f type'
+      TELitFalse type' -> r TELitFalse `a` f type'
+      TEMethApp type' expr i exprs -> r TEMethApp `a` f type' `a` f expr `a` f i `a` foldr (a . a (r (:)) . f) (r []) exprs
+      TEApp type' i exprs -> r TEApp `a` f type' `a` f i `a` foldr (a . a (r (:)) . f) (r []) exprs
+      TEString type' str -> r TEString `a` f type' `a` r str
+      TNeg type' expr -> r TNeg `a` f type' `a` f expr
+      TNot type' expr -> r TNot `a` f type' `a` f expr
+      TEMul type' expr0 mulop1 expr2 -> r TEMul `a` f type' `a` f expr0 `a` f mulop1 `a` f expr2
+      TEAdd type' expr0 addop1 expr2 -> r TEAdd `a` f type' `a` f expr0 `a` f addop1 `a` f expr2
+      TERel type' expr0 relop1 expr2 -> r TERel `a` f type' `a` f expr0 `a` f relop1 `a` f expr2
+      TEAnd type' expr0 expr1 -> r TEAnd `a` f type' `a` f expr0 `a` f expr1
+      TEOr type' expr0 expr1 -> r TEOr `a` f type' `a` f expr0 `a` f expr1
       _ -> r t
 
 instance Show (Tree c) where
@@ -126,15 +168,15 @@ instance Show (Tree c) where
     ClsDef i clsbowels -> opar n . showString "ClsDef" . showChar ' ' . showsPrec 1 i . showChar ' ' . showsPrec 1 clsbowels . cpar n
     ClsExtDef i0 i1 clsbowels2 -> opar n . showString "ClsExtDef" . showChar ' ' . showsPrec 1 i0 . showChar ' ' . showsPrec 1 i1 . showChar ' ' . showsPrec 1 clsbowels2 . cpar n
     Argument type' i -> opar n . showString "Argument" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 i . cpar n
-    MemberDef type' items -> opar n . showString "MemberDef" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 items . cpar n
+    MemberDef type' is -> opar n . showString "MemberDef" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 is . cpar n
     MethodDef type' i args block -> opar n . showString "MethodDef" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 i . showChar ' ' . showsPrec 1 args . showChar ' ' . showsPrec 1 block . cpar n
     Blk stmts -> opar n . showString "Blk" . showChar ' ' . showsPrec 1 stmts . cpar n
     Empty -> showString "Empty"
     BStmt block -> opar n . showString "BStmt" . showChar ' ' . showsPrec 1 block . cpar n
     Decl type' items -> opar n . showString "Decl" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 items . cpar n
     Ass expr0 expr1 -> opar n . showString "Ass" . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 expr1 . cpar n
-    Incr i -> opar n . showString "Incr" . showChar ' ' . showsPrec 1 i . cpar n
-    Decr i -> opar n . showString "Decr" . showChar ' ' . showsPrec 1 i . cpar n
+    Incr expr -> opar n . showString "Incr" . showChar ' ' . showsPrec 1 expr . cpar n
+    Decr expr -> opar n . showString "Decr" . showChar ' ' . showsPrec 1 expr . cpar n
     Ret expr -> opar n . showString "Ret" . showChar ' ' . showsPrec 1 expr . cpar n
     VRet -> showString "VRet"
     Cond expr stmt -> opar n . showString "Cond" . showChar ' ' . showsPrec 1 expr . showChar ' ' . showsPrec 1 stmt . cpar n
@@ -143,6 +185,9 @@ instance Show (Tree c) where
     SExp expr -> opar n . showString "SExp" . showChar ' ' . showsPrec 1 expr . cpar n
     NoInit i -> opar n . showString "NoInit" . showChar ' ' . showsPrec 1 i . cpar n
     Init i expr -> opar n . showString "Init" . showChar ' ' . showsPrec 1 i . showChar ' ' . showsPrec 1 expr . cpar n
+    Int -> showString "Int"
+    Str -> showString "Str"
+    Bool -> showString "Bool"
     IdentType i -> opar n . showString "IdentType" . showChar ' ' . showsPrec 1 i . cpar n
     Void -> showString "Void"
     Fun type' types -> opar n . showString "Fun" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 types . cpar n
@@ -163,6 +208,23 @@ instance Show (Tree c) where
     ERel expr0 relop1 expr2 -> opar n . showString "ERel" . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 relop1 . showChar ' ' . showsPrec 1 expr2 . cpar n
     EAnd expr0 expr1 -> opar n . showString "EAnd" . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 expr1 . cpar n
     EOr expr0 expr1 -> opar n . showString "EOr" . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 expr1 . cpar n
+    TECast type' i -> opar n . showString "TECast" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 i . cpar n
+    TEVar type' i -> opar n . showString "TEVar" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 i . cpar n
+    TEMember type' expr i -> opar n . showString "TEMember" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr . showChar ' ' . showsPrec 1 i . cpar n
+    TEConstr type' i -> opar n . showString "TEConstr" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 i . cpar n
+    TELitInt type' n -> opar n . showString "TELitInt" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 n . cpar n
+    TELitTrue type' -> opar n . showString "TELitTrue" . showChar ' ' . showsPrec 1 type' . cpar n
+    TELitFalse type' -> opar n . showString "TELitFalse" . showChar ' ' . showsPrec 1 type' . cpar n
+    TEMethApp type' expr i exprs -> opar n . showString "TEMethApp" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr . showChar ' ' . showsPrec 1 i . showChar ' ' . showsPrec 1 exprs . cpar n
+    TEApp type' i exprs -> opar n . showString "TEApp" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 i . showChar ' ' . showsPrec 1 exprs . cpar n
+    TEString type' str -> opar n . showString "TEString" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 str . cpar n
+    TNeg type' expr -> opar n . showString "TNeg" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr . cpar n
+    TNot type' expr -> opar n . showString "TNot" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr . cpar n
+    TEMul type' expr0 mulop1 expr2 -> opar n . showString "TEMul" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 mulop1 . showChar ' ' . showsPrec 1 expr2 . cpar n
+    TEAdd type' expr0 addop1 expr2 -> opar n . showString "TEAdd" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 addop1 . showChar ' ' . showsPrec 1 expr2 . cpar n
+    TERel type' expr0 relop1 expr2 -> opar n . showString "TERel" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 relop1 . showChar ' ' . showsPrec 1 expr2 . cpar n
+    TEAnd type' expr0 expr1 -> opar n . showString "TEAnd" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 expr1 . cpar n
+    TEOr type' expr0 expr1 -> opar n . showString "TEOr" . showChar ' ' . showsPrec 1 type' . showChar ' ' . showsPrec 1 expr0 . showChar ' ' . showsPrec 1 expr1 . cpar n
     Plus -> showString "Plus"
     Minus -> showString "Minus"
     Times -> showString "Times"
@@ -186,15 +248,15 @@ johnMajorEq (FnDef type' i args block) (FnDef type'_ i_ args_ block_) = type' ==
 johnMajorEq (ClsDef i clsbowels) (ClsDef i_ clsbowels_) = i == i_ && clsbowels == clsbowels_
 johnMajorEq (ClsExtDef i0 i1 clsbowels2) (ClsExtDef i0_ i1_ clsbowels2_) = i0 == i0_ && i1 == i1_ && clsbowels2 == clsbowels2_
 johnMajorEq (Argument type' i) (Argument type'_ i_) = type' == type'_ && i == i_
-johnMajorEq (MemberDef type' items) (MemberDef type'_ items_) = type' == type'_ && items == items_
+johnMajorEq (MemberDef type' is) (MemberDef type'_ is_) = type' == type'_ && is == is_
 johnMajorEq (MethodDef type' i args block) (MethodDef type'_ i_ args_ block_) = type' == type'_ && i == i_ && args == args_ && block == block_
 johnMajorEq (Blk stmts) (Blk stmts_) = stmts == stmts_
 johnMajorEq Empty Empty = True
 johnMajorEq (BStmt block) (BStmt block_) = block == block_
 johnMajorEq (Decl type' items) (Decl type'_ items_) = type' == type'_ && items == items_
 johnMajorEq (Ass expr0 expr1) (Ass expr0_ expr1_) = expr0 == expr0_ && expr1 == expr1_
-johnMajorEq (Incr i) (Incr i_) = i == i_
-johnMajorEq (Decr i) (Decr i_) = i == i_
+johnMajorEq (Incr expr) (Incr expr_) = expr == expr_
+johnMajorEq (Decr expr) (Decr expr_) = expr == expr_
 johnMajorEq (Ret expr) (Ret expr_) = expr == expr_
 johnMajorEq VRet VRet = True
 johnMajorEq (Cond expr stmt) (Cond expr_ stmt_) = expr == expr_ && stmt == stmt_
@@ -203,6 +265,9 @@ johnMajorEq (While expr stmt) (While expr_ stmt_) = expr == expr_ && stmt == stm
 johnMajorEq (SExp expr) (SExp expr_) = expr == expr_
 johnMajorEq (NoInit i) (NoInit i_) = i == i_
 johnMajorEq (Init i expr) (Init i_ expr_) = i == i_ && expr == expr_
+johnMajorEq Int Int = True
+johnMajorEq Str Str = True
+johnMajorEq Bool Bool = True
 johnMajorEq (IdentType i) (IdentType i_) = i == i_
 johnMajorEq Void Void = True
 johnMajorEq (Fun type' types) (Fun type'_ types_) = type' == type'_ && types == types_
@@ -223,6 +288,23 @@ johnMajorEq (EAdd expr0 addop1 expr2) (EAdd expr0_ addop1_ expr2_) = expr0 == ex
 johnMajorEq (ERel expr0 relop1 expr2) (ERel expr0_ relop1_ expr2_) = expr0 == expr0_ && relop1 == relop1_ && expr2 == expr2_
 johnMajorEq (EAnd expr0 expr1) (EAnd expr0_ expr1_) = expr0 == expr0_ && expr1 == expr1_
 johnMajorEq (EOr expr0 expr1) (EOr expr0_ expr1_) = expr0 == expr0_ && expr1 == expr1_
+johnMajorEq (TECast type' i) (TECast type'_ i_) = type' == type'_ && i == i_
+johnMajorEq (TEVar type' i) (TEVar type'_ i_) = type' == type'_ && i == i_
+johnMajorEq (TEMember type' expr i) (TEMember type'_ expr_ i_) = type' == type'_ && expr == expr_ && i == i_
+johnMajorEq (TEConstr type' i) (TEConstr type'_ i_) = type' == type'_ && i == i_
+johnMajorEq (TELitInt type' n) (TELitInt type'_ n_) = type' == type'_ && n == n_
+johnMajorEq (TELitTrue type') (TELitTrue type'_) = type' == type'_
+johnMajorEq (TELitFalse type') (TELitFalse type'_) = type' == type'_
+johnMajorEq (TEMethApp type' expr i exprs) (TEMethApp type'_ expr_ i_ exprs_) = type' == type'_ && expr == expr_ && i == i_ && exprs == exprs_
+johnMajorEq (TEApp type' i exprs) (TEApp type'_ i_ exprs_) = type' == type'_ && i == i_ && exprs == exprs_
+johnMajorEq (TEString type' str) (TEString type'_ str_) = type' == type'_ && str == str_
+johnMajorEq (TNeg type' expr) (TNeg type'_ expr_) = type' == type'_ && expr == expr_
+johnMajorEq (TNot type' expr) (TNot type'_ expr_) = type' == type'_ && expr == expr_
+johnMajorEq (TEMul type' expr0 mulop1 expr2) (TEMul type'_ expr0_ mulop1_ expr2_) = type' == type'_ && expr0 == expr0_ && mulop1 == mulop1_ && expr2 == expr2_
+johnMajorEq (TEAdd type' expr0 addop1 expr2) (TEAdd type'_ expr0_ addop1_ expr2_) = type' == type'_ && expr0 == expr0_ && addop1 == addop1_ && expr2 == expr2_
+johnMajorEq (TERel type' expr0 relop1 expr2) (TERel type'_ expr0_ relop1_ expr2_) = type' == type'_ && expr0 == expr0_ && relop1 == relop1_ && expr2 == expr2_
+johnMajorEq (TEAnd type' expr0 expr1) (TEAnd type'_ expr0_ expr1_) = type' == type'_ && expr0 == expr0_ && expr1 == expr1_
+johnMajorEq (TEOr type' expr0 expr1) (TEOr type'_ expr0_ expr1_) = type' == type'_ && expr0 == expr0_ && expr1 == expr1_
 johnMajorEq Plus Plus = True
 johnMajorEq Minus Minus = True
 johnMajorEq Times Times = True
@@ -262,53 +344,73 @@ index (While _ _) = 18
 index (SExp _) = 19
 index (NoInit _) = 20
 index (Init _ _) = 21
-index (IdentType _) = 22
-index (Void ) = 23
-index (Fun _ _) = 24
-index (ECast _) = 25
-index (EVar _) = 26
-index (EMember _ _) = 27
-index (EConstr _) = 28
-index (ELitInt _) = 29
-index (ELitTrue ) = 30
-index (ELitFalse ) = 31
-index (EMethApp _ _ _) = 32
-index (EApp _ _) = 33
-index (EString _) = 34
-index (Neg _) = 35
-index (Not _) = 36
-index (EMul _ _ _) = 37
-index (EAdd _ _ _) = 38
-index (ERel _ _ _) = 39
-index (EAnd _ _) = 40
-index (EOr _ _) = 41
-index (Plus ) = 42
-index (Minus ) = 43
-index (Times ) = 44
-index (Div ) = 45
-index (Mod ) = 46
-index (LTH ) = 47
-index (LE ) = 48
-index (GTH ) = 49
-index (GE ) = 50
-index (EQU ) = 51
-index (NE ) = 52
-index (Ident _) = 53
+index (Int ) = 22
+index (Str ) = 23
+index (Bool ) = 24
+index (IdentType _) = 25
+index (Void ) = 26
+index (Fun _ _) = 27
+index (ECast _) = 28
+index (EVar _) = 29
+index (EMember _ _) = 30
+index (EConstr _) = 31
+index (ELitInt _) = 32
+index (ELitTrue ) = 33
+index (ELitFalse ) = 34
+index (EMethApp _ _ _) = 35
+index (EApp _ _) = 36
+index (EString _) = 37
+index (Neg _) = 38
+index (Not _) = 39
+index (EMul _ _ _) = 40
+index (EAdd _ _ _) = 41
+index (ERel _ _ _) = 42
+index (EAnd _ _) = 43
+index (EOr _ _) = 44
+index (TECast _ _) = 45
+index (TEVar _ _) = 46
+index (TEMember _ _ _) = 47
+index (TEConstr _ _) = 48
+index (TELitInt _ _) = 49
+index (TELitTrue _) = 50
+index (TELitFalse _) = 51
+index (TEMethApp _ _ _ _) = 52
+index (TEApp _ _ _) = 53
+index (TEString _ _) = 54
+index (TNeg _ _) = 55
+index (TNot _ _) = 56
+index (TEMul _ _ _ _) = 57
+index (TEAdd _ _ _ _) = 58
+index (TERel _ _ _ _) = 59
+index (TEAnd _ _ _) = 60
+index (TEOr _ _ _) = 61
+index (Plus ) = 62
+index (Minus ) = 63
+index (Times ) = 64
+index (Div ) = 65
+index (Mod ) = 66
+index (LTH ) = 67
+index (LE ) = 68
+index (GTH ) = 69
+index (GE ) = 70
+index (EQU ) = 71
+index (NE ) = 72
+index (Ident _) = 73
 compareSame :: Tree c -> Tree c -> Ordering
 compareSame (Prgm topdefs) (Prgm topdefs_) = compare topdefs topdefs_
 compareSame (FnDef type' i args block) (FnDef type'_ i_ args_ block_) = mappend (compare type' type'_) (mappend (compare i i_) (mappend (compare args args_) (compare block block_)))
 compareSame (ClsDef i clsbowels) (ClsDef i_ clsbowels_) = mappend (compare i i_) (compare clsbowels clsbowels_)
 compareSame (ClsExtDef i0 i1 clsbowels2) (ClsExtDef i0_ i1_ clsbowels2_) = mappend (compare i0 i0_) (mappend (compare i1 i1_) (compare clsbowels2 clsbowels2_))
 compareSame (Argument type' i) (Argument type'_ i_) = mappend (compare type' type'_) (compare i i_)
-compareSame (MemberDef type' items) (MemberDef type'_ items_) = mappend (compare type' type'_) (compare items items_)
+compareSame (MemberDef type' is) (MemberDef type'_ is_) = mappend (compare type' type'_) (compare is is_)
 compareSame (MethodDef type' i args block) (MethodDef type'_ i_ args_ block_) = mappend (compare type' type'_) (mappend (compare i i_) (mappend (compare args args_) (compare block block_)))
 compareSame (Blk stmts) (Blk stmts_) = compare stmts stmts_
 compareSame Empty Empty = EQ
 compareSame (BStmt block) (BStmt block_) = compare block block_
 compareSame (Decl type' items) (Decl type'_ items_) = mappend (compare type' type'_) (compare items items_)
 compareSame (Ass expr0 expr1) (Ass expr0_ expr1_) = mappend (compare expr0 expr0_) (compare expr1 expr1_)
-compareSame (Incr i) (Incr i_) = compare i i_
-compareSame (Decr i) (Decr i_) = compare i i_
+compareSame (Incr expr) (Incr expr_) = compare expr expr_
+compareSame (Decr expr) (Decr expr_) = compare expr expr_
 compareSame (Ret expr) (Ret expr_) = compare expr expr_
 compareSame VRet VRet = EQ
 compareSame (Cond expr stmt) (Cond expr_ stmt_) = mappend (compare expr expr_) (compare stmt stmt_)
@@ -317,6 +419,9 @@ compareSame (While expr stmt) (While expr_ stmt_) = mappend (compare expr expr_)
 compareSame (SExp expr) (SExp expr_) = compare expr expr_
 compareSame (NoInit i) (NoInit i_) = compare i i_
 compareSame (Init i expr) (Init i_ expr_) = mappend (compare i i_) (compare expr expr_)
+compareSame Int Int = EQ
+compareSame Str Str = EQ
+compareSame Bool Bool = EQ
 compareSame (IdentType i) (IdentType i_) = compare i i_
 compareSame Void Void = EQ
 compareSame (Fun type' types) (Fun type'_ types_) = mappend (compare type' type'_) (compare types types_)
@@ -337,6 +442,23 @@ compareSame (EAdd expr0 addop1 expr2) (EAdd expr0_ addop1_ expr2_) = mappend (co
 compareSame (ERel expr0 relop1 expr2) (ERel expr0_ relop1_ expr2_) = mappend (compare expr0 expr0_) (mappend (compare relop1 relop1_) (compare expr2 expr2_))
 compareSame (EAnd expr0 expr1) (EAnd expr0_ expr1_) = mappend (compare expr0 expr0_) (compare expr1 expr1_)
 compareSame (EOr expr0 expr1) (EOr expr0_ expr1_) = mappend (compare expr0 expr0_) (compare expr1 expr1_)
+compareSame (TECast type' i) (TECast type'_ i_) = mappend (compare type' type'_) (compare i i_)
+compareSame (TEVar type' i) (TEVar type'_ i_) = mappend (compare type' type'_) (compare i i_)
+compareSame (TEMember type' expr i) (TEMember type'_ expr_ i_) = mappend (compare type' type'_) (mappend (compare expr expr_) (compare i i_))
+compareSame (TEConstr type' i) (TEConstr type'_ i_) = mappend (compare type' type'_) (compare i i_)
+compareSame (TELitInt type' n) (TELitInt type'_ n_) = mappend (compare type' type'_) (compare n n_)
+compareSame (TELitTrue type') (TELitTrue type'_) = compare type' type'_
+compareSame (TELitFalse type') (TELitFalse type'_) = compare type' type'_
+compareSame (TEMethApp type' expr i exprs) (TEMethApp type'_ expr_ i_ exprs_) = mappend (compare type' type'_) (mappend (compare expr expr_) (mappend (compare i i_) (compare exprs exprs_)))
+compareSame (TEApp type' i exprs) (TEApp type'_ i_ exprs_) = mappend (compare type' type'_) (mappend (compare i i_) (compare exprs exprs_))
+compareSame (TEString type' str) (TEString type'_ str_) = mappend (compare type' type'_) (compare str str_)
+compareSame (TNeg type' expr) (TNeg type'_ expr_) = mappend (compare type' type'_) (compare expr expr_)
+compareSame (TNot type' expr) (TNot type'_ expr_) = mappend (compare type' type'_) (compare expr expr_)
+compareSame (TEMul type' expr0 mulop1 expr2) (TEMul type'_ expr0_ mulop1_ expr2_) = mappend (compare type' type'_) (mappend (compare expr0 expr0_) (mappend (compare mulop1 mulop1_) (compare expr2 expr2_)))
+compareSame (TEAdd type' expr0 addop1 expr2) (TEAdd type'_ expr0_ addop1_ expr2_) = mappend (compare type' type'_) (mappend (compare expr0 expr0_) (mappend (compare addop1 addop1_) (compare expr2 expr2_)))
+compareSame (TERel type' expr0 relop1 expr2) (TERel type'_ expr0_ relop1_ expr2_) = mappend (compare type' type'_) (mappend (compare expr0 expr0_) (mappend (compare relop1 relop1_) (compare expr2 expr2_)))
+compareSame (TEAnd type' expr0 expr1) (TEAnd type'_ expr0_ expr1_) = mappend (compare type' type'_) (mappend (compare expr0 expr0_) (compare expr1 expr1_))
+compareSame (TEOr type' expr0 expr1) (TEOr type'_ expr0_ expr1_) = mappend (compare type' type'_) (mappend (compare expr0 expr0_) (compare expr1 expr1_))
 compareSame Plus Plus = EQ
 compareSame Minus Minus = EQ
 compareSame Times Times = EQ

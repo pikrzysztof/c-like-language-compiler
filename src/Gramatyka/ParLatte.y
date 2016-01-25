@@ -37,19 +37,22 @@ import Gramatyka.ErrM
   '==' { PT _ (TS _ 20) }
   '>' { PT _ (TS _ 21) }
   '>=' { PT _ (TS _ 22) }
-  'class' { PT _ (TS _ 23) }
-  'else' { PT _ (TS _ 24) }
-  'extends' { PT _ (TS _ 25) }
-  'false' { PT _ (TS _ 26) }
-  'if' { PT _ (TS _ 27) }
-  'new' { PT _ (TS _ 28) }
-  'return' { PT _ (TS _ 29) }
-  'true' { PT _ (TS _ 30) }
-  'void' { PT _ (TS _ 31) }
-  'while' { PT _ (TS _ 32) }
-  '{' { PT _ (TS _ 33) }
-  '||' { PT _ (TS _ 34) }
-  '}' { PT _ (TS _ 35) }
+  'boolean' { PT _ (TS _ 23) }
+  'class' { PT _ (TS _ 24) }
+  'else' { PT _ (TS _ 25) }
+  'extends' { PT _ (TS _ 26) }
+  'false' { PT _ (TS _ 27) }
+  'if' { PT _ (TS _ 28) }
+  'int' { PT _ (TS _ 29) }
+  'new' { PT _ (TS _ 30) }
+  'return' { PT _ (TS _ 31) }
+  'string' { PT _ (TS _ 32) }
+  'true' { PT _ (TS _ 33) }
+  'void' { PT _ (TS _ 34) }
+  'while' { PT _ (TS _ 35) }
+  '{' { PT _ (TS _ 36) }
+  '||' { PT _ (TS _ 37) }
+  '}' { PT _ (TS _ 38) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -88,13 +91,19 @@ ListArg : {- empty -} { [] }
 
 
 ClsBowel :: { ClsBowel }
-ClsBowel : Type ListItem ';' { MemberDef $1 $2 } 
+ClsBowel : Type ListIdent ';' { MemberDef $1 $2 } 
   | Type Ident '(' ListArg ')' Block { MethodDef $1 $2 $4 $6 }
 
 
 ListClsBowel :: { [ClsBowel] }
 ListClsBowel : {- empty -} { [] } 
   | ListClsBowel ClsBowel { flip (:) $1 $2 }
+
+
+ListIdent :: { [Ident] }
+ListIdent : {- empty -} { [] } 
+  | Ident { (:[]) $1 }
+  | Ident ',' ListIdent { (:) $1 $3 }
 
 
 Block :: { Block }
@@ -111,8 +120,8 @@ Stmt : ';' { Empty }
   | Block { BStmt $1 }
   | Type ListItem ';' { Decl $1 $2 }
   | Expr '=' Expr ';' { Ass $1 $3 }
-  | Ident '++' ';' { Incr $1 }
-  | Ident '--' ';' { Decr $1 }
+  | Expr '++' ';' { Incr $1 }
+  | Expr '--' ';' { Decr $1 }
   | 'return' Expr ';' { Ret $2 }
   | 'return' ';' { VRet }
   | 'if' '(' Expr ')' Stmt { Cond $3 $5 }
@@ -132,7 +141,10 @@ ListItem : Item { (:[]) $1 }
 
 
 Type :: { Type }
-Type : Ident { IdentType $1 } 
+Type : 'int' { Int } 
+  | 'string' { Str }
+  | 'boolean' { Bool }
+  | Ident { IdentType $1 }
   | 'void' { Void }
 
 

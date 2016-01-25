@@ -8,6 +8,7 @@ STRUCT=${TEST_FOLDER}/extensions/struct/*.${SRC_EXT}
 RED='\033[0;31m'
 NC='\033[0m'
 GREEN='\033[0;32m'
+
 for i in $BAD
 do
     PLIK=$(echo $i | sed "s/${TEST_FOLDER}\///g")
@@ -15,6 +16,10 @@ do
     if [[ "${ER}" =~ "ERROR" ]]
     then
 	echo -e "[[ ${GREEN}OK${NC}  ]] ${PLIK}"
+        if [[ "$1" =~ "-v" ]]
+        then
+            echo -e "${ER}"
+        fi
     else
 	echo -e "[[ ${RED}ŹLE${NC} ]] ${PLIK}"
     fi
