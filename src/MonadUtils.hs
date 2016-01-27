@@ -5,13 +5,14 @@ import Control.Monad.Trans.Except
 import Control.Monad.Reader
 --import Gramatyka.AbsLatte
 --import Gramatyka.ComposOp
+import Data.List (intersperse)
 data CE = Err [String]
         deriving (Eq, Ord)
 
 type ErrMonad m a = ExceptT CE m a
 instance Show CE where
   show (Err []) = error "ktoś chce pokazać pusty błąd."
-  show (Err x) = foldl (++) "ERROR\n" x
+  show (Err x) = foldl (++) "ERROR\n" (reverse $ intersperse "\n" x)
 
 infixr 0 &&&
 (&&&) :: Monad m => String -> ErrMonad m a -> ErrMonad m a

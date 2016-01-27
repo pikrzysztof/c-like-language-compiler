@@ -1,15 +1,18 @@
 SRC_EXT="lat"
 TEST_FOLDER=lattests
-BAD=${TEST_FOLDER}/bad/*
+BAD1=${TEST_FOLDER}/bad/*
+BAD2=testy-latte-master/basic/mrjp2012/bad/*
+BAD3=testy-latte-master/basic/msz/bad/*
 GOOD=${TEST_FOLDER}/good/*.${SRC_EXT}
-OBJ1=${TEST_FOLDER}/extensions/objects1/*.${SRC_EXT}
-OBJ2=${TEST_FOLDER}/extensions/objects2/*.${SRC_EXT}
-STRUCT=${TEST_FOLDER}/extensions/struct/*.${SRC_EXT}
+BAD4=testy-latte-master/basic/sygi/bad/*
+#OBJ1=${TEST_FOLDER}/extensions/objects1/*.${SRC_EXT}
+#OBJ2=${TEST_FOLDER}/extensions/objects2/*.${SRC_EXT}
+#STRUCT=${TEST_FOLDER}/extensions/struct/*.${SRC_EXT}
 RED='\033[0;31m'
 NC='\033[0m'
 GREEN='\033[0;32m'
 
-for i in $BAD
+for i in $BAD $BAD2 $BAD3 $BAD4
 do
     PLIK=$(echo $i | sed "s/${TEST_FOLDER}\///g")
     ER=$(./latc $i)
@@ -26,7 +29,7 @@ do
 done
 
 
-for i in $GOOD $OBJ1 $OBJ2 $STRUCT
+for i in $GOOD #$OBJ1 $OBJ2 $STRUCT
 do
     PLIK=$(echo $i | sed "s/${TEST_FOLDER}\///g")
     ER=$(./latc $i)

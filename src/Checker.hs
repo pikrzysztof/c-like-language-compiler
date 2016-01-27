@@ -9,10 +9,12 @@ import Control.Monad.Reader
 import Control.Monad.Identity
 import Control.Monad.Trans.Except
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Data.List hiding (sum)
 import Gramatyka.AbsLatte
 import Data.Maybe as Mb
 import Data.Either
+import Gramatyka.PrintLatte
 
 import ASTAdapter
 import MonadUtils
@@ -27,8 +29,20 @@ odpal r e0 = runIdentity $ runReaderT (runExceptT r) e0
 checkTree :: Program -> Except CE Program
 checkTree tr = do
   () <- invalidDecl False tr
+  () <- checkVoid tr
+  () <- forbiddenFnNames (S.fromList
+                          [Ident "printInt",
+                           Ident "printString",
+                           Ident "error",
+                           Ident "readInt",
+                           Ident "readString"])
+        tr
+  () <- checkSameFnNames tr
   let tr' = desugar tr
-  checkTypesWithFunctions tr'
+  tr'' <- checkTypesWithFunctions tr'
+  let tr''' = deleteConsts tr''
+  return tr'''
+
 
 checkExistence :: (Ord a) => (M.Map a b) -> (z -> a) -> z -> Bool
 checkExistence m f k = M.member (f k) m
@@ -40,20 +54,22 @@ dups f as = null $ a' \\ (nub a')
 
 checkTypes :: Tree a -> Validator (Tree a, Env)
 checkTypes p = do
-  (show p) &&& case p of
+  (printTree p) &&& case p of
     FnDef t i as b -> do
       let fn = fromJust $ adapt p
       unless
         (dups snd (args fn))
         (throwE $ duplicatedArg fn)
       (b', _e) <- local (newEnv fn) (checkTypes b)
-      newT $ FnDef t i as b'
+      let b'' = deleteConsts b'
+      when ((t /= Void) && (not $ hasReturn p)) (throwE $ noReturn p)
+      newT $ FnDef t i as b''
     Blk stmts -> do
-      (stmts', _e) <- chainReaderMap checkTypes stmts
+      (stmts', _e) <- local newScope (chainReaderMap checkTypes stmts)
       newT $ Blk stmts'
     Empty -> standard
     BStmt stmts -> do
-      (stmts', _e) <- checkTypes stmts
+      (stmts', _e) <- local newScope (checkTypes stmts)
       newT $ BStmt stmts'
     Decl t items -> do
       when
@@ -62,11 +78,31 @@ checkTypes p = do
       unless
         (dups id items)
         (throwE $ duplicateDecl p)
+      results <- mapM (\whole@(Init ident expr) -> do
+                          (expr', t') <- checkExprType expr
+                          when (t /= t') (throwE $ incompatibleTypeDecl whole)
+                          return (Init ident expr', t')
+                      )
+                 items
+      vars <- asks variables
+      when
+        (any
+         (\x -> (snd $ fromJust $ M.lookup x vars) == ThisScope)
+         (filter
+          (\x -> M.member x vars)
+          (map (\(Init ident _expr) -> ident) items)))
+        (throwE $ redeclaration p)
       e <- asks ((flip sum) p)
-      newE e
+      new (Decl t (map fst results)) e
     Ass e1 e2 -> do
       (tr1, ty1) <- checkExprType e1
       (tr2, ty2) <- checkExprType e2
+      when
+        ((\x -> case x of
+           TEVar _ _ -> False
+           TEMember _ _ _ -> False
+           _ -> True) tr1)
+        (throwE $ nonLValueAssignment p)
       e <- ask
       unless (isSuperclass e ty2 ty1) (throwE $ assignTypeNoMatch p)
       newT $ Ass tr1 tr2
@@ -78,6 +114,7 @@ checkTypes p = do
       unless
         (isSuperclass e' ty (fromJust z))
         (throwE $ wrongRetType p (fromJust z) ty)
+      -- error $ "program: " +++ p +++ "\n environment " +++ e' +++ "\n repaired tree " +++ tr +++ "\n actual type" +++ ty +++ "\n wanted type" +++ z
       newT $ Ret tr
     VRet -> do
       rt <- asks checkedFnType
@@ -97,8 +134,10 @@ checkTypes p = do
     SExp e -> do
       (tr1, _t1) <- checkExprType e
       newT $ SExp tr1
-    _ ->
-      standard
+    Prgm xs -> do
+      (xs', _e) <- chainReaderMap checkTypes xs
+      newT $ Prgm xs'
+    _ -> error $ "unmatched " +++ p +++ " in checkTypes"
   where
     standard = standard' p
     standard' :: Tree a -> Validator (Tree a, Env)
@@ -109,11 +148,11 @@ checkTypes p = do
     newT t = do
       e <- ask
       return (t, e)
-    newE = newE' p
-    newE' :: Tree a -> Env -> Validator (Tree a, Env)
-    newE' pp e = return (pp, e)
-    --new :: Tree a -> Env -> Validator (Tree a, Env)
-    --new t e = return (t, e)
+    --newE = newE' p
+    --newE' :: Tree a -> Env -> Validator (Tree a, Env)
+    --newE' pp e = return (pp, e)
+    new :: Tree a -> Env -> Validator (Tree a, Env)
+    new t e = return (t, e)
 
 
 
@@ -163,18 +202,30 @@ desugar t = case t of
       _ -> error "I have not expected void or function type here."
 
 invalidDecl :: Bool -> Tree a -> Except CE ()
-invalidDecl b t = case t of
+invalidDecl b t = (printTree t) &&& case t of
   dec@(Decl _ _) -> unless b (throwE $ declarationInWrongPlace dec)
   blk@(Blk _stmts) -> composOpM_ (invalidDecl True) blk
   whatever -> composOpM_ (invalidDecl False) whatever
 
+hasReturn :: Tree a -> Bool
+hasReturn t = case t of
+  Prgm _x -> False
+  FnDef _t _i _a b -> hasReturn b
+  Blk xs -> or $ map hasReturn xs
+  BStmt x -> hasReturn x
+  Ret _e -> True
+  VRet -> True
+  CondElse _cond s1 s2 -> (hasReturn s1) && (hasReturn s2)
+  While _e b -> hasReturn b
+  _ -> False
+
 checkExprType :: Expr -> Validator (Expr, Type)
 checkExprType ex = do
-  (show ex) &&& case ex of
+  (printTree ex) &&& case ex of
     EVar ident -> do
       t <- asks ((M.lookup ident) . variables)
       when (isNothing t) (throwE $ notInitialized ex)
-      let t' = fromJust t
+      let (t', _scope) = fromJust t
       return $ std t' --(addTe t', t')
     ELitInt i -> do
       when (i > (toInteger (maxBound :: Int32)) ||
@@ -192,8 +243,9 @@ checkExprType ex = do
       when (isNothing mf) (throwE $ missingFunctionError ex)
       let f = fromJust mf
       ts <- mapM checkExprType es
-      when ((length . args) f /= length es)
-        (throwE $ incompatibleArgNumber (fromJust $ adapt ex) f)
+      when
+        (((length . args) f) /= (length es))
+        (throwE $ incompatibleArgNumber ex f)
 
       -- moze trzeba odwrocic kolejnosc argumentów?????????
       env <- ask
@@ -230,19 +282,19 @@ checkExprType ex = do
           when
             (t1 /= t2)
             (throwE $ cantMultiply ex t1 t2)
-          return $ (TERel t1 e1' op e2', t1)
+          return $ (TERel Bool e1' op e2', Bool)
         NE -> do
           (e1', t1) <- checkExprType e1
           (e2', t2) <- checkExprType e2
           when
             (t1 /= t2)
             (throwE $ cantMultiply ex t1 t2)
-          return $ (TERel t1 e1' op e2', t1)
+          return $ (TERel Bool e1' op e2', Bool)
         _ -> do
           (e1', t1) <- checkExprType e1
           (e2', t2) <- checkExprType e2
           when (t1 /= t2 || t1 /= Int) (throwE $ cantMultiply ex t1 t2)
-          return $ (TERel t1 e1' op e2', t1)
+          return $ (TERel Bool e1' op e2', Bool)
     EAnd e1 e2 -> do
       (e1', t1) <- checkExprType e1
       (e2', t2) <- checkExprType e2
@@ -290,3 +342,30 @@ checkExprType ex = do
       EOr e1 e2 -> TEOr t e1 e2
       -- te juz maja typy, to jest rodzina T*
       x -> x
+
+deleteConsts :: Tree a -> Tree a
+deleteConsts t = case t of
+  CondElse (TELitTrue _) s1 _s2 -> s1
+  CondElse (TELitFalse _) _s1 s2 -> s2
+  While (TELitFalse _) _s -> Empty
+  _ -> composOp deleteConsts t
+
+checkVoid :: Tree a -> Except CE ()
+checkVoid a = (printTree a) &&& case a of
+  FnDef _t i as b -> do
+    _ <-composOpM_ checkVoid i
+    _ <- mapM_ checkVoid as
+    composOpM_ checkVoid b
+  Void -> throwE $ voidDecl a
+  _ -> composOpM_ checkVoid a
+
+forbiddenFnNames :: S.Set Ident -> Tree a -> Except CE ()
+forbiddenFnNames s p = case p of
+  FnDef _t i _args _blk -> do
+    when (S.member i s) (throwE $ forbiddenName p)
+    composOpM_ (forbiddenFnNames s) p
+  _ -> composOpM_ (forbiddenFnNames s) p
+
+checkSameFnNames :: Program -> Except CE ()
+checkSameFnNames (Prgm z) = do
+  when (not $ null $ getDups (\(FnDef _t i1 _as _b) -> i1) z) (throwE $ redefinitionOfFunction z)

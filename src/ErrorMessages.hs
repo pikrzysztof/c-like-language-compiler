@@ -48,12 +48,16 @@ incompatibleArg fnNeeded fnReal argGiven argReal =
   " (nie zgadza się typ argumentu funkcji, oczekiwano " +++
   argGiven +++ "a dano" +++ argReal +++ ")"
 
-incompatibleArgNumber :: Function -> Function -> CE
-incompatibleArgNumber fnCalled fnReal =
-  er $ (incompatibleFn fnCalled fnReal) +++
-        " (nie zgadza się liczba argumentów, oczekiwano " +++
-        (length $ args fnReal) +++ " a dano " +++ (length $ args fnCalled) +++
-        ")"
+incompatibleArgNumber :: Expr -> Function -> CE
+incompatibleArgNumber fnCalled@(EApp _ident es) fnReal =
+  er $ "Przy wywołaniu funkcji " +++ fnCalled +++
+  " która została zadeklarowana wcześniej jako " +++ fnReal +++
+  " (nie zgadza się liczba argumentów, oczekiwano " +++
+  (length $ args fnReal) +++ " a dano " +++ (length es) +++
+  ")"
+incompatibleArgNumber a b = error $ "I have not expected " +++ a  +++ " and "
+                            +++ b +++
+                            " to be my argumetns in incompatibleArgNumber"
 
 dummyE :: CE
 dummyE = er $ "dummy"
@@ -115,7 +119,7 @@ expectedBool s =
 
 notInitialized :: Expr -> CE
 notInitialized e =
-  er $ "Variable " +++ e +++ " has not been initialized."
+  er $ "Variable " +++ e +++ " has not been declared."
 
 outOfBounds :: Integer -> CE
 outOfBounds i =
@@ -145,3 +149,31 @@ cantMultiply :: Expr -> Type -> Type -> CE
 cantMultiply ex t1 t2 =
   er $ "Cant do expr " +++ ex +++ " left side has type " +++ t1 +++
   " right side has type " +++ t2 +++ "."
+
+incompatibleTypeDecl :: Item -> CE
+incompatibleTypeDecl i =
+  er $ "Incompatible type when declaring " +++ i +++ "."
+
+functionWithoutReturn :: Tree a -> CE
+functionWithoutReturn fn = er $ "Function " +++ fn +++
+                           " does not guarantee to return a value"
+
+voidDecl :: Tree a -> CE
+voidDecl t = er $ "Void type declaration in forbidden place in " +++ t +++ "."
+
+forbiddenName :: Tree a -> CE
+forbiddenName f = er $ "Language structure " +++ f +++ " has reserved name."
+
+noReturn :: Tree a -> CE
+noReturn f = er $ "Function " +++ f +++ " has no return guaranteed."
+
+redeclaration :: Tree a -> CE
+redeclaration a = er $ "Variable is redeclared in the same scope in " +++ a +++ "."
+
+redefinitionOfFunction :: [TopDef] -> CE
+redefinitionOfFunction z = er $ "Functions " +++
+                           (getDups (\(FnDef _t i _as _b) -> i) z) +++
+                           " are redefined."
+
+nonLValueAssignment :: Tree a -> CE
+nonLValueAssignment a = er $ "Trying to assign a value to non-lvalue in " +++ a +++ "."

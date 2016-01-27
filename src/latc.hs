@@ -43,14 +43,14 @@ run v p s = do
       putStrLn str
       exitFailure
     Ok tree -> do
-      showTree v tree
+--      showTree v tree
       let checked = runExcept $ checkTree tree
       case checked of
         Left err -> do
           putStrLn (show err)
           exitFailure
         Right newTree -> do
-          putStrLn (show newTree)
+          showTree v newTree
           exitSuccess
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()

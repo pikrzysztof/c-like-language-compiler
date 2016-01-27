@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE GADTs, TypeSynonymInstances, FlexibleInstances #-}
 module TypeCheckerEnvironment where
 
@@ -9,9 +10,11 @@ import Data.Tuple
 type Var = (Ident, Type)
 type FnMap = Map Ident Function
 type ClsMap = Map Ident Class
-type VarMap = Map Ident Type
+type VarMap = Map Ident (Type, Scope)
 type Argument = (Type, Ident)
               -- deriving (Eq, Ord, Show)
+
+data Scope = ThisScope | OtherScope deriving (Ord, Eq, Show)
 
 data Env = Env { variables :: VarMap,
                  functions :: FnMap,
@@ -21,7 +24,12 @@ data Env = Env { variables :: VarMap,
 
 envZero :: Env
 envZero = Env { variables = M.empty,
-                functions = M.empty,
+                functions = (M.fromList . (P.map (\x -> (fnName x, x))))
+                            [printInt,
+                             printString,
+                             errorFn,
+                             readInt,
+                             readString],
                 classes = M.empty,
                 checkedFnType = Nothing
               }
@@ -35,6 +43,33 @@ data Class = Cz { clsName :: Ident,
                   memberVar :: VarMap,
                   superclass :: Maybe Ident
                  } deriving (Eq, Ord, Show)
+
+printInt :: Function
+printInt = Fn { fnName = Ident "printInt",
+                args = [(Int, Ident "z")],
+                returnType = Void
+              }
+printString :: Function
+printString = Fn { fnName = Ident "printString",
+                   args = [(Str, Ident "z")],
+                   returnType = Void
+                 }
+errorFn :: Function
+errorFn = Fn { fnName = Ident "error",
+               args = [],
+               returnType = Void
+             }
+
+readInt :: Function
+readInt = Fn { fnName = Ident "readInt",
+               args = [],
+               returnType = Int
+             }
+readString :: Function
+readString = Fn { fnName = Ident "readString",
+                  args = [],
+                  returnType = Str
+                }
 
 mainFunction :: Function
 mainFunction = Fn { fnName = Ident "main",
@@ -83,14 +118,17 @@ instance HasSuperclass Type where
   superclasses _ (Fun _ _) = error "Ktoś chcę listę superklas funkcji."
   superclasses _e _ = []        -- typ prosty lub void
 
-instance EnvElement Type where
-  add e ident type' = e { variables = M.insert ident type' (variables e)}
-  geti e i = getGeneral e variables i
-  geto e (IdentType o) = getGeneral e variables o
-  geto _e (Fun _ _) = error "Zmienna która jest funkcją."
-  geto _e Void = error "Zmienna typu void."
-  geto _ _ = error $ "Nie wiem jak pobrać ze środowiska zmienną tylko na " ++
-             "podstawie typu..."
+-- instance EnvElement (Type, Scope) where
+--   add e ident type' = e { variables = M.insert
+--                                       ident
+--                                       (type', ThisScope)
+--                                       (variables e)}
+--   geti e i = getGeneral e variables i
+--   geto e (IdentType o) = getGeneral e variables o
+--   geto _e (Fun _ _) = error "Zmienna która jest funkcją."
+--   geto _e Void = error "Zmienna typu void."
+--   geto _ _ = error $ "Nie wiem jak pobrać ze środowiska zmienną tylko na " ++
+--              "podstawie typu..."
 
 
 instance EnvElement Class where
@@ -113,15 +151,27 @@ instance Summable Function where
   sum e f = e { functions = insert (fnName f) f (functions e) }
 
 instance NewEnv Function where
-  newEnv f e = e { variables = fromList $ P.map swap (args f),
-                   checkedFnType = Just $ returnType f}
+  newEnv f e = e { variables = fromList $
+                               P.map
+                               (\(typ, ident) -> (ident, (typ, OtherScope)))
+                               (args f),
+                   checkedFnType = if (returnType f == Void)
+                                   then Nothing
+                                   else (Just $ returnType f)
+                 }
 
 instance Summable Var where
-  sum e v = e { variables = M.insert (fst v) (snd v) (variables e)}
+  sum e v = e { variables = M.insert (fst v) (snd v, ThisScope) (variables e)}
+
+instance Summable (Ident, (Type, Scope)) where
+  sum e (i, z) = e { variables = M.insert i z (variables e)}
 
 instance Summable Stmt where
   sum e (Decl t i) =
     P.foldr (flip sum) e (P.map
-                          ((flip (,)) t)
+                          ((flip (,)) (t, ThisScope))
                           (P.map (\(Init ident _) -> ident) i))
   sum _ _ = error "Can't sum other statement than Decl."
+
+newScope :: Env -> Env
+newScope e = e { variables = M.map (\(t, _) -> (t, OtherScope)) (variables e) }
