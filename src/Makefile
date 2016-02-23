@@ -4,7 +4,7 @@ all:
 	ghc --make -Wall latc.hs -o latc
 
 clean:
-	-rm -f Gramatyka/*.log Gramatyka/*.aux Gramatyka/*.hi Gramatyka/*.o Gramatyka/*.dvi
+	-rm -f Gramatyka/*.log Gramatyka/*.aux Gramatyka/*.hi Gramatyka/*.o Gramatyka/*.dvi *.hi *.o
 	rm latc.hi ../latc latc.o latc
 	-rm -f Gramatyka/DocLatte.ps
 

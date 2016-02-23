@@ -21,13 +21,15 @@ separator  Stmt "" ;
 Empty.     Stmt ::= ";" ;
 BStmt.     Stmt ::= Block ;
 Decl.      Stmt ::= Type [Item] ";" ;
+
 NoInit.    Item ::= Ident ;
 Init.      Item ::= Ident "=" Expr ;
+
 separator  nonempty Item "," ;
-Ass.       Stmt ::= Expr "=" Expr  ";" ;
---AssMember. Stmt ::= Ident "." Ident "=" Expr  ";" ;
-Incr.      Stmt ::= Expr "++"  ";" ;
-Decr.      Stmt ::= Expr "--"  ";" ;
+Ass.       Stmt ::= LValue "=" Expr  ";" ;
+
+Incr.      Stmt ::= LValue "++"  ";" ;
+Decr.      Stmt ::= LValue "--"  ";" ;
 Ret.       Stmt ::= "return" Expr ";" ;
 VRet.      Stmt ::= "return" ";" ;
 Cond.      Stmt ::= "if" "(" Expr ")" Stmt ;
@@ -35,27 +37,32 @@ CondElse.  Stmt ::= "if" "(" Expr ")" Stmt "else" Stmt ;
 While.     Stmt ::= "while" "(" Expr ")" Stmt ;
 SExp.      Stmt ::= Expr  ";" ;
 
-
 -- Types ---------------------------------------------------
 Int.       Type ::= "int" ;
 Str.       Type ::= "string" ;
 Bool.      Type ::= "boolean" ;
 IdentType. Type ::= Ident ;
+ArrType.   Type ::= Type "[]";
+--ArrTypeWLen. Type ::= Type "[" Expr "]";
 Void.      Type ::= "void" ;
--- _.         Type ::= Type ;
--- _.         Type ::= Type ;
 internal   Fun. Type ::= Type "(" [Type] ")" ;
 separator  Type "," ;
 
 -- Expressions ---------------------------------------------
-ECast.     Expr6 ::= "(" Ident ")null" ;
-EVar.      Expr6 ::= Ident;
-EMember.   Expr5 ::= Expr5 "." Ident; --daje konflikt
-EConstr.   Expr6 ::= "new" Ident ;
+LVIdent.   LValue ::= Ident;
+LVMember.  LValue ::= Expr6 "." Ident;
+LVArrItem. LValue ::= Expr6 "[" Expr "]";
+
+ECast.     Expr6 ::= "(" Ident ")null";
+ELValue.    Expr6 ::= LValue;
+-- EVar.      Expr6 ::= Ident;
+--EMember.   Expr5 ::= Expr5 "." Ident;
+EConstr.   Expr6 ::= "new" Type ;
+-- EArrConstr. Expr6 ::= "new" Type "[" Expr "]";
 ELitInt.   Expr6 ::= Integer ;
 ELitTrue.  Expr6 ::= "true" ;
 ELitFalse. Expr6 ::= "false" ;
-EMethApp.  Expr5 ::= Expr5 "." Ident "(" [Expr] ")" ; --daje konflikt
+EMethApp.  Expr5 ::= Expr6 "." Ident "(" [Expr] ")" ;
 EApp.      Expr6 ::= Ident "(" [Expr] ")" ;
 EString.   Expr6 ::= String ;
 Neg.       Expr5 ::= "-" Expr6 ;
@@ -66,14 +73,15 @@ ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
 EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
 EOr.       Expr  ::= Expr1 "||" Expr ;
 
+
 internal TECast.     Expr6 ::= "{" Type "}" "(" Ident ")null" ;
-internal TEVar.      Expr6 ::= "{" Type "}" Ident;
-internal TEMember.   Expr5 ::= "{" Type "}" Expr5 "." Ident; --daje konflikt
-internal TEConstr.   Expr6 ::= "{" Type "}" "new" Ident ;
+internal TELValue.   Expr6 ::= "{" Type "}" LValue;
+internal TEConstr.   Expr6 ::= "{" Type "}" "new" Type ;
+--internal TEArrConstr. Expr6 ::= "{" Type "}" "new" Type "[" Expr "]";
 internal TELitInt.   Expr6 ::= "{" Type "}" Integer ;
 internal TELitTrue.  Expr6 ::= "{" Type "}" "true" ;
 internal TELitFalse. Expr6 ::= "{" Type "}" "false" ;
-internal TEMethApp.  Expr5 ::= "{" Type "}" Expr5 "." Ident "(" [Expr] ")" ; --daje konflikt
+internal TEMethApp.  Expr5 ::= "{" Type "}" Expr5 "." Ident "(" [Expr] ")" ;
 internal TEApp.      Expr6 ::= "{" Type "}" Ident "(" [Expr] ")" ;
 internal TEString.   Expr6 ::= "{" Type "}" String ;
 internal TNeg.       Expr5 ::= "{" Type "}" "-" Expr6 ;

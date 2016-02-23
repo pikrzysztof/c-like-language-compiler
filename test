@@ -1,10 +1,10 @@
 SRC_EXT="lat"
 TEST_FOLDER=lattests
-BAD1=${TEST_FOLDER}/bad/*
-BAD2=testy-latte-master/basic/mrjp2012/bad/*
-BAD3=testy-latte-master/basic/msz/bad/*
+BAD1=${TEST_FOLDER}/bad/*.${SRC_EXT}
+BAD2=testy-latte-master/basic/mrjp2012/bad/*.${SRC_EXT}
+BAD3=testy-latte-master/basic/msz/bad/*.${SRC_EXT}
 GOOD=${TEST_FOLDER}/good/*.${SRC_EXT}
-BAD4=testy-latte-master/basic/sygi/bad/*
+BAD4=testy-latte-master/basic/sygi/bad/*.${SRC_EXT}
 #OBJ1=${TEST_FOLDER}/extensions/objects1/*.${SRC_EXT}
 #OBJ2=${TEST_FOLDER}/extensions/objects2/*.${SRC_EXT}
 #STRUCT=${TEST_FOLDER}/extensions/struct/*.${SRC_EXT}
@@ -12,10 +12,10 @@ RED='\033[0;31m'
 NC='\033[0m'
 GREEN='\033[0;32m'
 
-for i in $BAD $BAD2 $BAD3 $BAD4
+for i in $BAD1 $BAD2 $BAD3 $BAD4
 do
     PLIK=$(echo $i | sed "s/${TEST_FOLDER}\///g")
-    ER=$(./latc $i)
+    ER=$(./compiler $i 2>&1)
     if [[ "${ER}" =~ "ERROR" ]]
     then
 	echo -e "[[ ${GREEN}OK${NC}  ]] ${PLIK}"
@@ -31,11 +31,26 @@ done
 
 for i in $GOOD #$OBJ1 $OBJ2 $STRUCT
 do
+    B_NAME=`basename $i .lat`
+    D_NAME=`dirname $i`
+    B_FNAME=$D_NAME"/"$B_NAME
     PLIK=$(echo $i | sed "s/${TEST_FOLDER}\///g")
-    ER=$(./latc $i)
+    if [ -f $B_NAME.input ]
+    then
+        ER=$(./compiler $i 2>&1 < $B_NAME.input)
+    else
+        ER=$(./compiler $i 2>&1)
+    fi
+
     if [[ "${ER}" =~ "OK" ]]
     then
-	echo -e "[[ ${GREEN}OK${NC}  ]] ${PLIK}"
+        ./$B_FNAME > $B_FNAME.myout
+        if [[ $(diff $B_FNAME.myout $B_FNAME.output >/dev/null 2>/dev/null) -eq 0 ]]
+        then
+	    echo -e "[[ ${GREEN}OK${NC}  ]] ${PLIK}"
+        else
+            echo -e "[[ ${RED}ŹLE${NC} ]] ${PLIK}"
+        fi
     else
 	echo -e "[[ ${RED}ŹLE${NC} ]] ${PLIK}"
     fi

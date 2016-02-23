@@ -1,1 +1,8 @@
 latc
+*.asm
+*.myout
+*.bak
+lattests
+*.s
+testy-latte-master
+*.info

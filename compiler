@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+if [ "$#" -ne 1 ]
+then
+    echo "Niewlasciwa liczba argumentow, wymagany dokładnie jeden."
+    exit 1
+fi
+
+DIRNAME=`dirname $0`
+LIBDIR=$DIRNAME/lib
+E_DIRNAME=`dirname $@`
+B_NAME=`basename $@ .lat`
+B_NAME_W_DIR=$E_DIRNAME"/"$B_NAME
+LIBC_DIR=/usr/lib32
+KOMPILATOR=$LIBDIR/latc
+LINKED_LIB=$LIBDIR/lib.o
+ASM_NAME=$B_NAME_W_DIR".asm"
+OBJ_NAME=$B_NAME_W_DIR".o"
+if [ ! -f $KOMPILATOR ]
+then
+    echo "Nie znalazłem kompilatora, czyli pliku $KOMPILATOR."
+    exit 127
+fi
+
+if [ ! -f $LINKED_LIB ]
+then
+    echo "Nie znalazłem standardowej biblioteki Latte, czyli $LINKED_LIB."
+    exit 127
+fi
+
+if [ ! ${1: -4} == ".lat" ]
+then
+    echo 'Niewłaściwe rozszerzenie pliku źródłowego z programem, spodziewałem się .lat'
+    exit 127
+fi
+TMP=$(mktemp)
+./$KOMPILATOR $@ > $TMP
+if [[ $? -eq 0 ]]
+then
+    echo "OK" 1>&2
+    mv $TMP $ASM_NAME
+#    cat $LIBDIR/lib.asm >> $ASM_NAME
+    #    sed -i "s/call printString/call puts/g" $ASM_NAME
+    sed -i "/^;.*$/d" $ASM_NAME
+    nasm -f elf32 -g -F dwarf $ASM_NAME -o $OBJ_NAME
+    ld -L $LIBC_DIR --dynamic-linker=/lib/ld-linux.so.2 -lc -melf_i386 -o $B_NAME_W_DIR $OBJ_NAME $LINKED_LIB
+    exit 0
+else
+    cat $TMP 1>&2
+    rm $TMP
+    exit 1
+fi

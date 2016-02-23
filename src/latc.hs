@@ -8,11 +8,17 @@ import System.Exit ( exitFailure, exitSuccess )
 
 import Gramatyka.LexLatte
 import Gramatyka.ParLatte
---import Gramatyka.SkelLatte
+
+import Control.Monad.Trans.Except
+import Control.Monad.State
+import Control.Monad.Reader
 import Gramatyka.PrintLatte
 import Gramatyka.AbsLatte
+
+import CompilerEnv as CE
+import CompilerState as CS
 import Checker
-import Control.Monad.Trans.Except
+import Compiler
 
 
 
@@ -50,6 +56,8 @@ run v p s = do
           putStrLn (show err)
           exitFailure
         Right newTree -> do
+          let x = runReader (execStateT (compile newTree) CS.stateZero) CE.envZero
+          putStrLn (showCompiled x)
           showTree v newTree
           exitSuccess
 

@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \( | \) | \, | \{ | \} | \; | \= | \+ \+ | \- \- | \) "null" | \. | \- | \! | \& \& | \| \| | \+ | \* | \/ | \% | \< | \< \= | \> | \> \= | \= \= | \! \=
+   \( | \) | \, | \{ | \} | \; | \= | \+ \+ | \- \- | \[ \] | \. | \[ | \] | \) "null" | \- | \! | \& \& | \| \| | \+ | \* | \/ | \% | \< | \< \= | \> | \> \= | \= \= | \! \=
 
 :-
 "#" [.]* ; -- Toss single line comments
@@ -81,7 +81,7 @@ mkPosToken t@(PT p _) = (posLineCol p, prToken t)
 prToken :: Token -> String
 prToken t = case t of
   PT _ (TS s _) -> s
-  PT _ (TL s)   -> s
+  PT _ (TL s)   -> show s
   PT _ (TI s)   -> s
   PT _ (TV s)   -> s
   PT _ (TD s)   -> s
@@ -99,7 +99,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "==" 20 (b "++" 10 (b "(" 5 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 4 N N)) (b "*" 8 (b ")null" 7 (b ")" 6 N N) N) (b "+" 9 N N))) (b "/" 15 (b "--" 13 (b "-" 12 (b "," 11 N N) N) (b "." 14 N N)) (b "<=" 18 (b "<" 17 (b ";" 16 N N) N) (b "=" 19 N N)))) (b "new" 30 (b "else" 25 (b "boolean" 23 (b ">=" 22 (b ">" 21 N N) N) (b "class" 24 N N)) (b "if" 28 (b "false" 27 (b "extends" 26 N N) N) (b "int" 29 N N))) (b "while" 35 (b "true" 33 (b "string" 32 (b "return" 31 N N) N) (b "void" 34 N N)) (b "||" 37 (b "{" 36 N N) (b "}" 38 N N))))
+resWords = b ">" 21 (b "," 11 (b ")" 6 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "(" 5 (b "&&" 4 N N) N)) (b "+" 9 (b "*" 8 (b ")null" 7 N N) N) (b "++" 10 N N))) (b ";" 16 (b "." 14 (b "--" 13 (b "-" 12 N N) N) (b "/" 15 N N)) (b "=" 19 (b "<=" 18 (b "<" 17 N N) N) (b "==" 20 N N)))) (b "int" 32 (b "class" 27 (b "[]" 24 (b "[" 23 (b ">=" 22 N N) N) (b "boolean" 26 (b "]" 25 N N) N)) (b "false" 30 (b "extends" 29 (b "else" 28 N N) N) (b "if" 31 N N))) (b "void" 37 (b "string" 35 (b "return" 34 (b "new" 33 N N) N) (b "true" 36 N N)) (b "||" 40 (b "{" 39 (b "while" 38 N N) N) (b "}" 41 N N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, FlexibleContexts #-}
 module Checker where
 
 import Prelude hiding(sum)
@@ -41,7 +41,9 @@ checkTree tr = do
   let tr' = desugar tr
   tr'' <- checkTypesWithFunctions tr'
   let tr''' = deleteConsts tr''
-  return tr'''
+  let tr'''' = desugarOps tr'''
+  let tr''''' = mangleIdents tr''''
+  return tr'''''
 
 
 checkExistence :: (Ord a) => (M.Map a b) -> (z -> a) -> z -> Bool
@@ -54,7 +56,7 @@ dups f as = null $ a' \\ (nub a')
 
 checkTypes :: Tree a -> Validator (Tree a, Env)
 checkTypes p = do
-  (printTree p) &&& case p of
+  (print2Tree p) &&& case p of
     FnDef t i as b -> do
       let fn = fromJust $ adapt p
       unless
@@ -94,18 +96,21 @@ checkTypes p = do
         (throwE $ redeclaration p)
       e <- asks ((flip sum) p)
       new (Decl t (map fst results)) e
-    Ass e1 e2 -> do
-      (tr1, ty1) <- checkExprType e1
+    LVIdent _i -> do
+      (_tr, _ty) <- checkExprType (ELValue p)
+      standard
+    Ass lv e2 -> do
+      (_tr, ty1) <- checkExprType (ELValue lv)
       (tr2, ty2) <- checkExprType e2
-      when
-        ((\x -> case x of
-           TEVar _ _ -> False
-           TEMember _ _ _ -> False
-           _ -> True) tr1)
-        (throwE $ nonLValueAssignment p)
+      -- when
+      --   ((\x -> case x of
+      --      TELValue _ _ -> False
+      --      TEMember _ _ _ -> False
+      --      _ -> True) tr1)
+      --   (throwE $ nonLValueAssignment p)
       e <- ask
       unless (isSuperclass e ty2 ty1) (throwE $ assignTypeNoMatch p)
-      newT $ Ass tr1 tr2
+      newT $ Ass lv tr2
     Ret e -> do
       (tr, ty) <- checkExprType e
       z <- asks checkedFnType
@@ -184,8 +189,8 @@ isSuperclass _e t1 t2 = t1 == t2
 desugar :: Tree a -> Tree a
 desugar t = case t of
   Cond e s -> CondElse e s Empty
-  Incr a -> Ass a (EAdd a Plus (ELitInt 1))
-  Decr a -> Ass a (EAdd a Minus (ELitInt 1))
+  Incr a -> Ass a (EAdd (ELValue a) Plus (ELitInt 1))
+  Decr a -> Ass a (EAdd (ELValue a) Minus (ELitInt 1))
   Decl type' stuff -> Decl type' (map (makeInit type') stuff)
   -- tu mozna jeszcze dodac taki motyw zeby generowac kod skaczacy od razu...
   _ -> composOp desugar t
@@ -198,11 +203,11 @@ desugar t = case t of
       Str -> EString ""
       Int -> ELitInt 0
       Bool -> ELitFalse
-      IdentType ident -> EConstr ident
+      --IdentType ident -> EConstr ident
       _ -> error "I have not expected void or function type here."
 
 invalidDecl :: Bool -> Tree a -> Except CE ()
-invalidDecl b t = (printTree t) &&& case t of
+invalidDecl b t = (print2Tree t) &&& case t of
   dec@(Decl _ _) -> unless b (throwE $ declarationInWrongPlace dec)
   blk@(Blk _stmts) -> composOpM_ (invalidDecl True) blk
   whatever -> composOpM_ (invalidDecl False) whatever
@@ -215,18 +220,20 @@ hasReturn t = case t of
   BStmt x -> hasReturn x
   Ret _e -> True
   VRet -> True
+  CondElse (ELitTrue) s1 _s2 -> hasReturn s1
+  CondElse (ELitFalse) _s1 s2 -> hasReturn s2
   CondElse _cond s1 s2 -> (hasReturn s1) && (hasReturn s2)
   While _e b -> hasReturn b
   _ -> False
 
 checkExprType :: Expr -> Validator (Expr, Type)
 checkExprType ex = do
-  (printTree ex) &&& case ex of
-    EVar ident -> do
-      t <- asks ((M.lookup ident) . variables)
+  (print2Tree ex) &&& case ex of
+    ELValue (LVIdent lval) -> do
+      t <- asks $ (M.lookup lval) . variables
       when (isNothing t) (throwE $ notInitialized ex)
       let (t', _scope) = fromJust t
-      return $ std t' --(addTe t', t')
+      return $ std t'
     ELitInt i -> do
       when (i > (toInteger (maxBound :: Int32)) ||
             i < (toInteger (minBound :: Int32))) (throwE $ outOfBounds i)
@@ -234,8 +241,7 @@ checkExprType ex = do
     ELitTrue -> return $ std Bool
     ELitFalse -> return $ std Bool
     EString _ -> return $ std Str
-    ECast _ -> return $ std Null
-    EMember _ _ -> error "NIY"
+    ECast _ -> error "NIY"--return $ std Null
     EConstr _ -> error "NIY"
     EMethApp _ _ _ -> error "NIY"
     EApp ident es -> do
@@ -273,7 +279,12 @@ checkExprType ex = do
     EMul e1 op e2 -> do
       checkT Int ex e1 e2 (\t e1' e2' -> TEMul t e1' op e2')
     EAdd e1 op e2 -> do
-      checkT Int ex e1 e2 (\t e1' e2' -> TEAdd t e1' op e2')
+      (e1', t1) <- checkExprType e1
+      (e2', t2) <- checkExprType e2
+      when (t1 /= t2 || not (elem t1 [Str, Int]))
+        (throwE $ cantMultiply ex t1 t2)
+      return $ (TEAdd t1 e1' op e2', t1)
+      -- checkT Int ex e1 e2 (\t e1' e2' -> TEAdd t e1' op e2')
     ERel e1 op e2 -> do
       case op of
         EQU -> do
@@ -324,8 +335,8 @@ checkExprType ex = do
     addT' :: Expr -> Type -> Expr
     addT' exx t = case exx of
       ECast i -> TECast t i
-      EVar i -> TEVar t i
-      EMember e i -> TEMember t e i
+      ELValue i -> TELValue t i
+--      EMember e i -> TEMember t e i
       EConstr i -> TEConstr t i
       ELitInt i -> TELitInt t i
       ELitTrue -> TELitTrue t
@@ -340,8 +351,9 @@ checkExprType ex = do
       ERel e1 op e2 -> TERel t e1 op e2
       EAnd e1 e2 -> TEAnd t e1 e2
       EOr e1 e2 -> TEOr t e1 e2
+      x -> error $ "nie rozpisalem konwersji E -> TE (linie 350~ dla) " ++
+           (show x)
       -- te juz maja typy, to jest rodzina T*
-      x -> x
 
 deleteConsts :: Tree a -> Tree a
 deleteConsts t = case t of
@@ -351,7 +363,7 @@ deleteConsts t = case t of
   _ -> composOp deleteConsts t
 
 checkVoid :: Tree a -> Except CE ()
-checkVoid a = (printTree a) &&& case a of
+checkVoid a = (show a) &&& case a of
   FnDef _t i as b -> do
     _ <-composOpM_ checkVoid i
     _ <- mapM_ checkVoid as
@@ -369,3 +381,31 @@ forbiddenFnNames s p = case p of
 checkSameFnNames :: Program -> Except CE ()
 checkSameFnNames (Prgm z) = do
   when (not $ null $ getDups (\(FnDef _t i1 _as _b) -> i1) z) (throwE $ redefinitionOfFunction z)
+
+desugarOps :: Tree a -> Tree a
+desugarOps a = case a of
+  TEAdd t e1 Minus e2 ->
+    TEAdd t (composOp desugarOps e1) Plus (TNeg t (composOp desugarOps e2))
+  TERel t e1 LTH e2 ->
+    TERel t (composOp desugarOps e2) GTH (composOp desugarOps e1)
+  TERel t e1 LE e2 ->
+    TERel t (composOp desugarOps e2) GE (composOp desugarOps e1)
+  TERel t e1 NE e2 ->
+    TNot t (TERel t (composOp desugarOps e2) EQU (composOp desugarOps e1))
+  _ -> composOp desugarOps a
+
+mangleIdents :: Tree a -> Tree a
+mangleIdents a = case a of
+  Ident s -> if (elem s ["printInt", "printString", "error", "readInt", "readString"])
+             then (Ident s)
+             else (Ident $ "$" ++ s)
+  _ -> composOp mangleIdents a
+
+-- addExit :: Bool -> Tree a -> Tree b
+-- addExit b a = case a of
+--   FnDef _t (Ident "main") _as blk -> do
+--     composOp (addExit True) a
+--   VRet -> if b
+--           then (TEApp _t (Ident "exi$t") [])
+--           else VRet
+--   _ -> composOp (addExit b) a

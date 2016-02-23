@@ -13,43 +13,46 @@ failure x = Bad $ "Undefined case: " ++ show x
 transTree :: Tree c -> Result
 transTree t = case t of
   Prgm topdefs -> failure t
-  FnDef type' i args block -> failure t
-  ClsDef i clsbowels -> failure t
-  ClsExtDef i0 i1 clsbowels2 -> failure t
-  Argument type' i -> failure t
-  MemberDef type' is -> failure t
-  MethodDef type' i args block -> failure t
+  FnDef type' ident args block -> failure t
+  ClsDef ident clsbowels -> failure t
+  ClsExtDef ident0 ident1 clsbowels2 -> failure t
+  Argument type' ident -> failure t
+  MemberDef type' idents -> failure t
+  MethodDef type' ident args block -> failure t
   Blk stmts -> failure t
   Empty  -> failure t
   BStmt block -> failure t
   Decl type' items -> failure t
-  Ass expr0 expr1 -> failure t
-  Incr expr -> failure t
-  Decr expr -> failure t
+  Ass lvalue expr -> failure t
+  Incr lvalue -> failure t
+  Decr lvalue -> failure t
   Ret expr -> failure t
   VRet  -> failure t
   Cond expr stmt -> failure t
   CondElse expr stmt0 stmt1 -> failure t
   While expr stmt -> failure t
   SExp expr -> failure t
-  NoInit i -> failure t
-  Init i expr -> failure t
+  NoInit ident -> failure t
+  Init ident expr -> failure t
   Int  -> failure t
   Str  -> failure t
   Bool  -> failure t
-  IdentType i -> failure t
+  IdentType ident -> failure t
+  ArrType type' -> failure t
   Void  -> failure t
   Fun type' types -> failure t
-  ECast i -> failure t
-  EVar i -> failure t
-  EMember expr i -> failure t
-  EConstr i -> failure t
-  ELitInt n -> failure t
+  LVIdent ident -> failure t
+  LVMember expr ident -> failure t
+  LVArrItem expr0 expr1 -> failure t
+  ECast ident -> failure t
+  ELValue lvalue -> failure t
+  EConstr type' -> failure t
+  ELitInt integer -> failure t
   ELitTrue  -> failure t
   ELitFalse  -> failure t
-  EMethApp expr i exprs -> failure t
-  EApp i exprs -> failure t
-  EString str -> failure t
+  EMethApp expr ident exprs -> failure t
+  EApp ident exprs -> failure t
+  EString string -> failure t
   Neg expr -> failure t
   Not expr -> failure t
   EMul expr0 mulop1 expr2 -> failure t
@@ -57,16 +60,15 @@ transTree t = case t of
   ERel expr0 relop1 expr2 -> failure t
   EAnd expr0 expr1 -> failure t
   EOr expr0 expr1 -> failure t
-  TECast type' i -> failure t
-  TEVar type' i -> failure t
-  TEMember type' expr i -> failure t
-  TEConstr type' i -> failure t
-  TELitInt type' n -> failure t
+  TECast type' ident -> failure t
+  TELValue type' lvalue -> failure t
+  TEConstr type'0 type'1 -> failure t
+  TELitInt type' integer -> failure t
   TELitTrue type' -> failure t
   TELitFalse type' -> failure t
-  TEMethApp type' expr i exprs -> failure t
-  TEApp type' i exprs -> failure t
-  TEString type' str -> failure t
+  TEMethApp type' expr ident exprs -> failure t
+  TEApp type' ident exprs -> failure t
+  TEString type' string -> failure t
   TNeg type' expr -> failure t
   TNot type' expr -> failure t
   TEMul type' expr0 mulop1 expr2 -> failure t
@@ -93,18 +95,18 @@ transProgram t = case t of
 
 transTopDef :: TopDef -> Result
 transTopDef t = case t of
-  FnDef type' i args block -> failure t
-  ClsDef i clsbowels -> failure t
-  ClsExtDef i0 i1 clsbowels2 -> failure t
+  FnDef type' ident args block -> failure t
+  ClsDef ident clsbowels -> failure t
+  ClsExtDef ident0 ident1 clsbowels2 -> failure t
 
 transArg :: Arg -> Result
 transArg t = case t of
-  Argument type' i -> failure t
+  Argument type' ident -> failure t
 
 transClsBowel :: ClsBowel -> Result
 transClsBowel t = case t of
-  MemberDef type' is -> failure t
-  MethodDef type' i args block -> failure t
+  MemberDef type' idents -> failure t
+  MethodDef type' ident args block -> failure t
 
 transBlock :: Block -> Result
 transBlock t = case t of
@@ -115,9 +117,9 @@ transStmt t = case t of
   Empty  -> failure t
   BStmt block -> failure t
   Decl type' items -> failure t
-  Ass expr0 expr1 -> failure t
-  Incr expr -> failure t
-  Decr expr -> failure t
+  Ass lvalue expr -> failure t
+  Incr lvalue -> failure t
+  Decr lvalue -> failure t
   Ret expr -> failure t
   VRet  -> failure t
   Cond expr stmt -> failure t
@@ -127,30 +129,36 @@ transStmt t = case t of
 
 transItem :: Item -> Result
 transItem t = case t of
-  NoInit i -> failure t
-  Init i expr -> failure t
+  NoInit ident -> failure t
+  Init ident expr -> failure t
 
 transType :: Type -> Result
 transType t = case t of
   Int  -> failure t
   Str  -> failure t
   Bool  -> failure t
-  IdentType i -> failure t
+  IdentType ident -> failure t
+  ArrType type' -> failure t
   Void  -> failure t
   Fun type' types -> failure t
 
+transLValue :: LValue -> Result
+transLValue t = case t of
+  LVIdent ident -> failure t
+  LVMember expr ident -> failure t
+  LVArrItem expr0 expr1 -> failure t
+
 transExpr :: Expr -> Result
 transExpr t = case t of
-  ECast i -> failure t
-  EVar i -> failure t
-  EMember expr i -> failure t
-  EConstr i -> failure t
-  ELitInt n -> failure t
+  ECast ident -> failure t
+  ELValue lvalue -> failure t
+  EConstr type' -> failure t
+  ELitInt integer -> failure t
   ELitTrue  -> failure t
   ELitFalse  -> failure t
-  EMethApp expr i exprs -> failure t
-  EApp i exprs -> failure t
-  EString str -> failure t
+  EMethApp expr ident exprs -> failure t
+  EApp ident exprs -> failure t
+  EString string -> failure t
   Neg expr -> failure t
   Not expr -> failure t
   EMul expr0 mulop1 expr2 -> failure t
@@ -158,16 +166,15 @@ transExpr t = case t of
   ERel expr0 relop1 expr2 -> failure t
   EAnd expr0 expr1 -> failure t
   EOr expr0 expr1 -> failure t
-  TECast type' i -> failure t
-  TEVar type' i -> failure t
-  TEMember type' expr i -> failure t
-  TEConstr type' i -> failure t
-  TELitInt type' n -> failure t
+  TECast type' ident -> failure t
+  TELValue type' lvalue -> failure t
+  TEConstr type'0 type'1 -> failure t
+  TELitInt type' integer -> failure t
   TELitTrue type' -> failure t
   TELitFalse type' -> failure t
-  TEMethApp type' expr i exprs -> failure t
-  TEApp type' i exprs -> failure t
-  TEString type' str -> failure t
+  TEMethApp type' expr ident exprs -> failure t
+  TEApp type' ident exprs -> failure t
+  TEString type' string -> failure t
   TNeg type' expr -> failure t
   TNot type' expr -> failure t
   TEMul type' expr0 mulop1 expr2 -> failure t

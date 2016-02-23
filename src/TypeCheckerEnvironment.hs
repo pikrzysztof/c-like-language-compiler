@@ -118,18 +118,6 @@ instance HasSuperclass Type where
   superclasses _ (Fun _ _) = error "Ktoś chcę listę superklas funkcji."
   superclasses _e _ = []        -- typ prosty lub void
 
--- instance EnvElement (Type, Scope) where
---   add e ident type' = e { variables = M.insert
---                                       ident
---                                       (type', ThisScope)
---                                       (variables e)}
---   geti e i = getGeneral e variables i
---   geto e (IdentType o) = getGeneral e variables o
---   geto _e (Fun _ _) = error "Zmienna która jest funkcją."
---   geto _e Void = error "Zmienna typu void."
---   geto _ _ = error $ "Nie wiem jak pobrać ze środowiska zmienną tylko na " ++
---              "podstawie typu..."
-
 
 instance EnvElement Class where
   add e ident cls' = e { classes = M.insert ident cls' (classes e)}

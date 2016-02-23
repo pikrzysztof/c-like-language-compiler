@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE Rank2Types, PolyKinds #-}
+{-# OPTIONS_GHC -w #-}
 module Gramatyka.ComposOp (Compos(..),composOp,composOpM,composOpM_,composOpMonoid,
                  composOpMPlus,composOpFold) where
 

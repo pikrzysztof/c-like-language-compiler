@@ -9,11 +9,9 @@ import Gramatyka.ErrM
 }
 
 %name pProgram Program
-
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
-%tokentype { Token }
-
+%tokentype {Token}
 %token
   '!' { PT _ (TS _ 1) }
   '!=' { PT _ (TS _ 2) }
@@ -37,22 +35,25 @@ import Gramatyka.ErrM
   '==' { PT _ (TS _ 20) }
   '>' { PT _ (TS _ 21) }
   '>=' { PT _ (TS _ 22) }
-  'boolean' { PT _ (TS _ 23) }
-  'class' { PT _ (TS _ 24) }
-  'else' { PT _ (TS _ 25) }
-  'extends' { PT _ (TS _ 26) }
-  'false' { PT _ (TS _ 27) }
-  'if' { PT _ (TS _ 28) }
-  'int' { PT _ (TS _ 29) }
-  'new' { PT _ (TS _ 30) }
-  'return' { PT _ (TS _ 31) }
-  'string' { PT _ (TS _ 32) }
-  'true' { PT _ (TS _ 33) }
-  'void' { PT _ (TS _ 34) }
-  'while' { PT _ (TS _ 35) }
-  '{' { PT _ (TS _ 36) }
-  '||' { PT _ (TS _ 37) }
-  '}' { PT _ (TS _ 38) }
+  '[' { PT _ (TS _ 23) }
+  '[]' { PT _ (TS _ 24) }
+  ']' { PT _ (TS _ 25) }
+  'boolean' { PT _ (TS _ 26) }
+  'class' { PT _ (TS _ 27) }
+  'else' { PT _ (TS _ 28) }
+  'extends' { PT _ (TS _ 29) }
+  'false' { PT _ (TS _ 30) }
+  'if' { PT _ (TS _ 31) }
+  'int' { PT _ (TS _ 32) }
+  'new' { PT _ (TS _ 33) }
+  'return' { PT _ (TS _ 34) }
+  'string' { PT _ (TS _ 35) }
+  'true' { PT _ (TS _ 36) }
+  'void' { PT _ (TS _ 37) }
+  'while' { PT _ (TS _ 38) }
+  '{' { PT _ (TS _ 39) }
+  '||' { PT _ (TS _ 40) }
+  '}' { PT _ (TS _ 41) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -66,166 +67,114 @@ Integer :: { Integer } : L_integ  { (read ( $1)) :: Integer }
 String  :: { String }  : L_quoted {  $1 }
 
 Program :: { Program }
-Program : ListTopDef { Prgm $1 } 
-
-
+Program : ListTopDef { Gramatyka.AbsLatte.Prgm $1 }
 TopDef :: { TopDef }
-TopDef : Type Ident '(' ListArg ')' Block { FnDef $1 $2 $4 $6 } 
-  | 'class' Ident '{' ListClsBowel '}' { ClsDef $2 (reverse $4) }
-  | 'class' Ident 'extends' Ident '{' ListClsBowel '}' { ClsExtDef $2 $4 (reverse $6) }
-
-
+TopDef : Type Ident '(' ListArg ')' Block { Gramatyka.AbsLatte.FnDef $1 $2 $4 $6 }
+       | 'class' Ident '{' ListClsBowel '}' { Gramatyka.AbsLatte.ClsDef $2 (reverse $4) }
+       | 'class' Ident 'extends' Ident '{' ListClsBowel '}' { Gramatyka.AbsLatte.ClsExtDef $2 $4 (reverse $6) }
 ListTopDef :: { [TopDef] }
-ListTopDef : TopDef { (:[]) $1 } 
-  | TopDef ListTopDef { (:) $1 $2 }
-
-
+ListTopDef : TopDef { (:[]) $1 } | TopDef ListTopDef { (:) $1 $2 }
 Arg :: { Arg }
-Arg : Type Ident { Argument $1 $2 } 
-
-
+Arg : Type Ident { Gramatyka.AbsLatte.Argument $1 $2 }
 ListArg :: { [Arg] }
-ListArg : {- empty -} { [] } 
-  | Arg { (:[]) $1 }
-  | Arg ',' ListArg { (:) $1 $3 }
-
-
+ListArg : {- empty -} { [] }
+        | Arg { (:[]) $1 }
+        | Arg ',' ListArg { (:) $1 $3 }
 ClsBowel :: { ClsBowel }
-ClsBowel : Type ListIdent ';' { MemberDef $1 $2 } 
-  | Type Ident '(' ListArg ')' Block { MethodDef $1 $2 $4 $6 }
-
-
+ClsBowel : Type ListIdent ';' { Gramatyka.AbsLatte.MemberDef $1 $2 }
+         | Type Ident '(' ListArg ')' Block { Gramatyka.AbsLatte.MethodDef $1 $2 $4 $6 }
 ListClsBowel :: { [ClsBowel] }
-ListClsBowel : {- empty -} { [] } 
-  | ListClsBowel ClsBowel { flip (:) $1 $2 }
-
-
+ListClsBowel : {- empty -} { [] }
+             | ListClsBowel ClsBowel { flip (:) $1 $2 }
 ListIdent :: { [Ident] }
-ListIdent : {- empty -} { [] } 
-  | Ident { (:[]) $1 }
-  | Ident ',' ListIdent { (:) $1 $3 }
-
-
+ListIdent : {- empty -} { [] }
+          | Ident { (:[]) $1 }
+          | Ident ',' ListIdent { (:) $1 $3 }
 Block :: { Block }
-Block : '{' ListStmt '}' { Blk (reverse $2) } 
-
-
+Block : '{' ListStmt '}' { Gramatyka.AbsLatte.Blk (reverse $2) }
 ListStmt :: { [Stmt] }
-ListStmt : {- empty -} { [] } 
-  | ListStmt Stmt { flip (:) $1 $2 }
-
-
+ListStmt : {- empty -} { [] } | ListStmt Stmt { flip (:) $1 $2 }
 Stmt :: { Stmt }
-Stmt : ';' { Empty } 
-  | Block { BStmt $1 }
-  | Type ListItem ';' { Decl $1 $2 }
-  | Expr '=' Expr ';' { Ass $1 $3 }
-  | Expr '++' ';' { Incr $1 }
-  | Expr '--' ';' { Decr $1 }
-  | 'return' Expr ';' { Ret $2 }
-  | 'return' ';' { VRet }
-  | 'if' '(' Expr ')' Stmt { Cond $3 $5 }
-  | 'if' '(' Expr ')' Stmt 'else' Stmt { CondElse $3 $5 $7 }
-  | 'while' '(' Expr ')' Stmt { While $3 $5 }
-  | Expr ';' { SExp $1 }
-
-
+Stmt : ';' { Gramatyka.AbsLatte.Empty }
+     | Block { Gramatyka.AbsLatte.BStmt $1 }
+     | Type ListItem ';' { Gramatyka.AbsLatte.Decl $1 $2 }
+     | LValue '=' Expr ';' { Gramatyka.AbsLatte.Ass $1 $3 }
+     | LValue '++' ';' { Gramatyka.AbsLatte.Incr $1 }
+     | LValue '--' ';' { Gramatyka.AbsLatte.Decr $1 }
+     | 'return' Expr ';' { Gramatyka.AbsLatte.Ret $2 }
+     | 'return' ';' { Gramatyka.AbsLatte.VRet }
+     | 'if' '(' Expr ')' Stmt { Gramatyka.AbsLatte.Cond $3 $5 }
+     | 'if' '(' Expr ')' Stmt 'else' Stmt { Gramatyka.AbsLatte.CondElse $3 $5 $7 }
+     | 'while' '(' Expr ')' Stmt { Gramatyka.AbsLatte.While $3 $5 }
+     | Expr ';' { Gramatyka.AbsLatte.SExp $1 }
 Item :: { Item }
-Item : Ident { NoInit $1 } 
-  | Ident '=' Expr { Init $1 $3 }
-
-
+Item : Ident { Gramatyka.AbsLatte.NoInit $1 }
+     | Ident '=' Expr { Gramatyka.AbsLatte.Init $1 $3 }
 ListItem :: { [Item] }
-ListItem : Item { (:[]) $1 } 
-  | Item ',' ListItem { (:) $1 $3 }
-
-
+ListItem : Item { (:[]) $1 } | Item ',' ListItem { (:) $1 $3 }
 Type :: { Type }
-Type : 'int' { Int } 
-  | 'string' { Str }
-  | 'boolean' { Bool }
-  | Ident { IdentType $1 }
-  | 'void' { Void }
-
-
+Type : 'int' { Gramatyka.AbsLatte.Int }
+     | 'string' { Gramatyka.AbsLatte.Str }
+     | 'boolean' { Gramatyka.AbsLatte.Bool }
+     | Ident { Gramatyka.AbsLatte.IdentType $1 }
+     | Type '[]' { Gramatyka.AbsLatte.ArrType $1 }
+     | 'void' { Gramatyka.AbsLatte.Void }
 ListType :: { [Type] }
-ListType : {- empty -} { [] } 
-  | Type { (:[]) $1 }
-  | Type ',' ListType { (:) $1 $3 }
-
-
+ListType : {- empty -} { [] }
+         | Type { (:[]) $1 }
+         | Type ',' ListType { (:) $1 $3 }
+LValue :: { LValue }
+LValue : Ident { Gramatyka.AbsLatte.LVIdent $1 }
+       | Expr6 '.' Ident { Gramatyka.AbsLatte.LVMember $1 $3 }
+       | Expr6 '[' Expr ']' { Gramatyka.AbsLatte.LVArrItem $1 $3 }
 Expr6 :: { Expr }
-Expr6 : '(' Ident ')null' { ECast $2 } 
-  | Ident { EVar $1 }
-  | 'new' Ident { EConstr $2 }
-  | Integer { ELitInt $1 }
-  | 'true' { ELitTrue }
-  | 'false' { ELitFalse }
-  | Ident '(' ListExpr ')' { EApp $1 $3 }
-  | String { EString $1 }
-  | '(' Expr ')' { $2 }
-
-
+Expr6 : '(' Ident ')null' { Gramatyka.AbsLatte.ECast $2 }
+      | LValue { Gramatyka.AbsLatte.ELValue $1 }
+      | 'new' Type { Gramatyka.AbsLatte.EConstr $2 }
+      | Integer { Gramatyka.AbsLatte.ELitInt $1 }
+      | 'true' { Gramatyka.AbsLatte.ELitTrue }
+      | 'false' { Gramatyka.AbsLatte.ELitFalse }
+      | Ident '(' ListExpr ')' { Gramatyka.AbsLatte.EApp $1 $3 }
+      | String { Gramatyka.AbsLatte.EString $1 }
+      | '(' Expr ')' { $2 }
 Expr5 :: { Expr }
-Expr5 : Expr5 '.' Ident { EMember $1 $3 } 
-  | Expr5 '.' Ident '(' ListExpr ')' { EMethApp $1 $3 $5 }
-  | '-' Expr6 { Neg $2 }
-  | '!' Expr6 { Not $2 }
-  | Expr6 { $1 }
-
-
+Expr5 : Expr6 '.' Ident '(' ListExpr ')' { Gramatyka.AbsLatte.EMethApp $1 $3 $5 }
+      | '-' Expr6 { Gramatyka.AbsLatte.Neg $2 }
+      | '!' Expr6 { Gramatyka.AbsLatte.Not $2 }
+      | Expr6 { $1 }
 Expr4 :: { Expr }
-Expr4 : Expr4 MulOp Expr5 { EMul $1 $2 $3 } 
-  | Expr5 { $1 }
-
-
+Expr4 : Expr4 MulOp Expr5 { Gramatyka.AbsLatte.EMul $1 $2 $3 }
+      | Expr5 { $1 }
 Expr3 :: { Expr }
-Expr3 : Expr3 AddOp Expr4 { EAdd $1 $2 $3 } 
-  | Expr4 { $1 }
-
-
+Expr3 : Expr3 AddOp Expr4 { Gramatyka.AbsLatte.EAdd $1 $2 $3 }
+      | Expr4 { $1 }
 Expr2 :: { Expr }
-Expr2 : Expr2 RelOp Expr3 { ERel $1 $2 $3 } 
-  | Expr3 { $1 }
-
-
+Expr2 : Expr2 RelOp Expr3 { Gramatyka.AbsLatte.ERel $1 $2 $3 }
+      | Expr3 { $1 }
 Expr1 :: { Expr }
-Expr1 : Expr2 '&&' Expr1 { EAnd $1 $3 } 
-  | Expr2 { $1 }
-
-
+Expr1 : Expr2 '&&' Expr1 { Gramatyka.AbsLatte.EAnd $1 $3 }
+      | Expr2 { $1 }
 Expr :: { Expr }
-Expr : Expr1 '||' Expr { EOr $1 $3 } 
-  | Expr1 { $1 }
-
-
+Expr : Expr1 '||' Expr { Gramatyka.AbsLatte.EOr $1 $3 }
+     | Expr1 { $1 }
 ListExpr :: { [Expr] }
-ListExpr : {- empty -} { [] } 
-  | Expr { (:[]) $1 }
-  | Expr ',' ListExpr { (:) $1 $3 }
-
-
+ListExpr : {- empty -} { [] }
+         | Expr { (:[]) $1 }
+         | Expr ',' ListExpr { (:) $1 $3 }
 AddOp :: { AddOp }
-AddOp : '+' { Plus } 
-  | '-' { Minus }
-
-
+AddOp : '+' { Gramatyka.AbsLatte.Plus }
+      | '-' { Gramatyka.AbsLatte.Minus }
 MulOp :: { MulOp }
-MulOp : '*' { Times } 
-  | '/' { Div }
-  | '%' { Mod }
-
-
+MulOp : '*' { Gramatyka.AbsLatte.Times }
+      | '/' { Gramatyka.AbsLatte.Div }
+      | '%' { Gramatyka.AbsLatte.Mod }
 RelOp :: { RelOp }
-RelOp : '<' { LTH } 
-  | '<=' { LE }
-  | '>' { GTH }
-  | '>=' { GE }
-  | '==' { EQU }
-  | '!=' { NE }
-
-
-
+RelOp : '<' { Gramatyka.AbsLatte.LTH }
+      | '<=' { Gramatyka.AbsLatte.LE }
+      | '>' { Gramatyka.AbsLatte.GTH }
+      | '>=' { Gramatyka.AbsLatte.GE }
+      | '==' { Gramatyka.AbsLatte.EQU }
+      | '!=' { Gramatyka.AbsLatte.NE }
 {
 
 returnM :: a -> Err a
