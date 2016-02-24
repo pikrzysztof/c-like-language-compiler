@@ -35,17 +35,18 @@ do
     D_NAME=`dirname $i`
     B_FNAME=$D_NAME"/"$B_NAME
     PLIK=$(echo $i | sed "s/${TEST_FOLDER}\///g")
-    if [ -f $B_NAME.input ]
-    then
-        ER=$(./compiler $i 2>&1 < $B_NAME.input)
-    else
-        ER=$(./compiler $i 2>&1)
-    fi
-
+    ER=$(./compiler $i 2>&1)
+    INFILE=$D_NAME"/"$B_NAME".input"
+    OUTNAME=$D_NAME"/"$B_NAME".myout"
     if [[ "${ER}" =~ "OK" ]]
     then
-        ./$B_FNAME > $B_FNAME.myout
-        if [[ $(diff $B_FNAME.myout $B_FNAME.output >/dev/null 2>/dev/null) -eq 0 ]]
+        if [ -f $INFILE ]
+        then
+            ./$B_FNAME >$OUTNAME <$INFILE
+        else
+            ./$B_FNAME >$OUTNAME
+        fi
+        if [[ $(diff $OUTNAME $B_FNAME.output >/dev/null 2>/dev/null) -eq 0 ]]
         then
 	    echo -e "[[ ${GREEN}OK${NC}  ]] ${PLIK}"
         else

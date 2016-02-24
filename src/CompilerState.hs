@@ -15,7 +15,8 @@ import Data.Sequence as S
 import Data.Map as M
 import Gramatyka.AbsLatte
 import ErrorMessages
-import Data.Char (ord)
+import Data.List (reverse,delete)
+import GHC.Exts
 
 varSize :: Integer
 varSize = 4
@@ -149,10 +150,10 @@ instance Show Instruction where
 showCompiled :: CompilerState -> String
 showCompiled (CS {instrs = is, strings = ss, nextId=_ni}) =
   "BITS 32\n" ++
-  "extern printInt,printString,error,readInt,readString,concat_strings\n" ++
+  "extern printInt,printString,error,readInt,readString,concat_strings\n\n" ++
   "section .data\n" ++
-  (Prelude.concatMap showMappedString (toList ss)) ++
-  "section .text\n" ++
+  (Prelude.concatMap showMappedString (sortWith snd (M.toList ss))) ++
+  "\nsection .text\n" ++
   "global _start\n" ++
   "_start:\n" ++
   "\tpush ebp\n" ++
@@ -163,4 +164,17 @@ showCompiled (CS {instrs = is, strings = ss, nextId=_ni}) =
   "\tint 0x80\n" ++
   (Prelude.concatMap (((flip (++) ) "\n") . show) is)
   where
-     showMappedString (string, label) = "str" +++ (show label) +++ ":" +++ " db " +++ (concatMap (((flip (++)) ","). show . ord)  string) +++ " 0\n"
+    rev = Data.List.reverse
+    del = Data.List.delete
+    showMappedString (string, label) =
+      "str" +++
+      (show label)
+      +++
+      ":"
+      +++
+      " db "
+      +++
+      (concatMap
+       (((flip (++)) ",") . (\x -> "`" ++ (deleteFandL '"' (show [x])) ++ "`")) string) +++ " 0\n"
+    deleteFandL :: Char -> String -> String
+    deleteFandL x xs = rev (del x (rev (del x xs)))

@@ -17,10 +17,12 @@ import ErrorMessages
 type CompilerGen s e result = StateT s (Reader e) result
 type Compiler a = CompilerGen CompilerState Env a
 
+debug :: Bool
+debug = True
 
 compile :: Tree a -> Compiler Env
 compile t = do
-  modify $ add $ Comment (show t)
+  when debug (modify $ add $ Comment (show t))
   case t of
     Prgm z -> do
       mapM_ compile z
@@ -29,7 +31,9 @@ compile t = do
       modify (add $ Function ident)
       modify (add $ Push EBP)
       modify (add $ Mov EBP ESP)
+      modify $ add $ Comment "koniec preambuly"
       _ <- local (newEnv t) (compile blk)
+      _ <- compile VRet
       ask
     Blk stmts -> do
       e <- ask
@@ -181,7 +185,7 @@ addNewVar i = do
 
 compileExpr :: Expr -> Compiler ()
 compileExpr expression = do
-  modify $ add $ Comment (show expression)
+  when (debug) (modify $ add $ Comment (show expression))
   case expression of
     ECast _-> error "expressions without type should not appear here"
     ELValue _-> error "expressions without type should not appear here"
@@ -235,6 +239,7 @@ compileExpr expression = do
               modify $ add $ Push r1
             Str -> do
               modify $ add $ Call $ Ident "concat_strings"
+              modify $ add $ AddInt ESP 2
               modify $ add $ Push $ EAX
             _ -> error "this type can't be here"
         Minus -> error "should be desugared"
@@ -295,7 +300,9 @@ compileExpr expression = do
     TEApp t ident args -> do
       mapM_ compileExpr $ L.reverse args
       modify $ add $ Call ident
-      modify $ add $ AddInt ESP (toInteger $ L.length args)
+      if (L.length args > 0)
+        then (modify $ add $ AddInt ESP (toInteger $ L.length args))
+        else (modify $ add $ Comment "tu powinno byc usuwanie argumentow ze stosu ale funkcja nie brala zadnych argumentow.")
       when (t /= Void) (modify $ add $ Push EAX)
     TERel t e1 relOp e2 -> do
       compileExpr e2

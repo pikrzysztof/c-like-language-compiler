@@ -39,9 +39,10 @@ int readInt()
 
 char* readString()
 {
-	char* a;
-	size_t len;
+	char* a = NULL;
+	size_t len = 0;
 	getline(&a, &len, stdin);
+	return a;
 }
 
 void exxxit()

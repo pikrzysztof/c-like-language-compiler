@@ -40,7 +40,7 @@ then
     mv $TMP $ASM_NAME
 #    cat $LIBDIR/lib.asm >> $ASM_NAME
     #    sed -i "s/call printString/call puts/g" $ASM_NAME
-    sed -i "/^;.*$/d" $ASM_NAME
+#    sed -i "/^;.*$/d" $ASM_NAME
     nasm -f elf32 -g -F dwarf $ASM_NAME -o $OBJ_NAME
     ld -L $LIBC_DIR --dynamic-linker=/lib/ld-linux.so.2 -lc -melf_i386 -o $B_NAME_W_DIR $OBJ_NAME $LINKED_LIB
     exit 0
