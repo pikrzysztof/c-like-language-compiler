@@ -1,3 +1,11 @@
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE GADTs #-}
 module Gramatyka.WeakEq where
 
@@ -50,7 +58,6 @@ instance WeakEq (Tree a) where
    weakEq (GE ) (GE ) = True
    weakEq (EQU ) (EQU ) = True
    weakEq (Ident _) (Ident _) = True
-   weakEq (Fun _ _) (Fun _ _) = True
    weakEq (LVIdent _) (LVIdent _) = True
    weakEq (ECast _) (ECast _) = True
    weakEq (ELValue _) (ELValue _) = True

@@ -112,10 +112,8 @@ instance HasSuperclass Class where
 
 instance HasSuperclass Type where
   giveSuperclass e (IdentType i) = giveSuperclass e i
-  giveSuperclass _ (Fun _ _) = error "Ktoś chce superklasę funkcji."
   giveSuperclass _e _ = Nothing -- typ prosty
   superclasses e (IdentType i) = superclasses e i
-  superclasses _ (Fun _ _) = error "Ktoś chcę listę superklas funkcji."
   superclasses _e _ = []        -- typ prosty lub void
 
 

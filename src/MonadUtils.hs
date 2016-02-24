@@ -84,7 +84,6 @@ instance Print2 (Tree a) where
     Bool -> printTree x
     IdentType _-> printTree x
     Void -> printTree x
-    Fun _ _ -> printTree x
     LVIdent _ -> printTree x
     TECast _ _ -> printTree x
     TELValue _ _ -> printTree x

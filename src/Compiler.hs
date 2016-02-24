@@ -140,8 +140,6 @@ compile t = do
     LVIdent _-> error "LVIdent should not be compiled seperately"
     Argument _ _ -> error "Argument should not be compiled seperately"
 
-    Fun _ _-> error "This should not be here"
-
     ECast _-> error "expressions without type should not appear here"
     ELValue _-> error "expressions without type should not appear here"
     EConstr _-> error "expressions without type should not appear here"

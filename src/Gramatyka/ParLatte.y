@@ -13,47 +13,48 @@ import Gramatyka.ErrM
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
 %token
-  '!' { PT _ (TS _ 1) }
-  '!=' { PT _ (TS _ 2) }
-  '%' { PT _ (TS _ 3) }
-  '&&' { PT _ (TS _ 4) }
-  '(' { PT _ (TS _ 5) }
-  ')' { PT _ (TS _ 6) }
-  ')null' { PT _ (TS _ 7) }
-  '*' { PT _ (TS _ 8) }
-  '+' { PT _ (TS _ 9) }
-  '++' { PT _ (TS _ 10) }
-  ',' { PT _ (TS _ 11) }
-  '-' { PT _ (TS _ 12) }
-  '--' { PT _ (TS _ 13) }
-  '.' { PT _ (TS _ 14) }
-  '/' { PT _ (TS _ 15) }
-  ';' { PT _ (TS _ 16) }
-  '<' { PT _ (TS _ 17) }
-  '<=' { PT _ (TS _ 18) }
-  '=' { PT _ (TS _ 19) }
-  '==' { PT _ (TS _ 20) }
-  '>' { PT _ (TS _ 21) }
-  '>=' { PT _ (TS _ 22) }
-  '[' { PT _ (TS _ 23) }
-  '[]' { PT _ (TS _ 24) }
-  ']' { PT _ (TS _ 25) }
-  'boolean' { PT _ (TS _ 26) }
-  'class' { PT _ (TS _ 27) }
-  'else' { PT _ (TS _ 28) }
-  'extends' { PT _ (TS _ 29) }
-  'false' { PT _ (TS _ 30) }
-  'if' { PT _ (TS _ 31) }
-  'int' { PT _ (TS _ 32) }
-  'new' { PT _ (TS _ 33) }
-  'return' { PT _ (TS _ 34) }
-  'string' { PT _ (TS _ 35) }
-  'true' { PT _ (TS _ 36) }
-  'void' { PT _ (TS _ 37) }
-  'while' { PT _ (TS _ 38) }
-  '{' { PT _ (TS _ 39) }
-  '||' { PT _ (TS _ 40) }
-  '}' { PT _ (TS _ 41) }
+  '' { PT _ (TS _ 1) }
+  '!' { PT _ (TS _ 2) }
+  '!=' { PT _ (TS _ 3) }
+  '%' { PT _ (TS _ 4) }
+  '&&' { PT _ (TS _ 5) }
+  '(' { PT _ (TS _ 6) }
+  ')' { PT _ (TS _ 7) }
+  ')null' { PT _ (TS _ 8) }
+  '*' { PT _ (TS _ 9) }
+  '+' { PT _ (TS _ 10) }
+  '++' { PT _ (TS _ 11) }
+  ',' { PT _ (TS _ 12) }
+  '-' { PT _ (TS _ 13) }
+  '--' { PT _ (TS _ 14) }
+  '.' { PT _ (TS _ 15) }
+  '/' { PT _ (TS _ 16) }
+  ';' { PT _ (TS _ 17) }
+  '<' { PT _ (TS _ 18) }
+  '<=' { PT _ (TS _ 19) }
+  '=' { PT _ (TS _ 20) }
+  '==' { PT _ (TS _ 21) }
+  '>' { PT _ (TS _ 22) }
+  '>=' { PT _ (TS _ 23) }
+  '[' { PT _ (TS _ 24) }
+  '[]' { PT _ (TS _ 25) }
+  ']' { PT _ (TS _ 26) }
+  'boolean' { PT _ (TS _ 27) }
+  'class' { PT _ (TS _ 28) }
+  'else' { PT _ (TS _ 29) }
+  'extends' { PT _ (TS _ 30) }
+  'false' { PT _ (TS _ 31) }
+  'if' { PT _ (TS _ 32) }
+  'int' { PT _ (TS _ 33) }
+  'new' { PT _ (TS _ 34) }
+  'return' { PT _ (TS _ 35) }
+  'string' { PT _ (TS _ 36) }
+  'true' { PT _ (TS _ 37) }
+  'void' { PT _ (TS _ 38) }
+  'while' { PT _ (TS _ 39) }
+  '{' { PT _ (TS _ 40) }
+  '||' { PT _ (TS _ 41) }
+  '}' { PT _ (TS _ 42) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -113,16 +114,21 @@ Item : Ident { Gramatyka.AbsLatte.NoInit $1 }
 ListItem :: { [Item] }
 ListItem : Item { (:[]) $1 } | Item ',' ListItem { (:) $1 $3 }
 Type :: { Type }
-Type : 'int' { Gramatyka.AbsLatte.Int }
+Type : Type '[]' { Gramatyka.AbsLatte.ArrType $1 }
+     | Ident { Gramatyka.AbsLatte.IdentType $1 }
+     | 'int' { Gramatyka.AbsLatte.Int }
      | 'string' { Gramatyka.AbsLatte.Str }
      | 'boolean' { Gramatyka.AbsLatte.Bool }
-     | Ident { Gramatyka.AbsLatte.IdentType $1 }
-     | Type '[]' { Gramatyka.AbsLatte.ArrType $1 }
      | 'void' { Gramatyka.AbsLatte.Void }
 ListType :: { [Type] }
 ListType : {- empty -} { [] }
          | Type { (:[]) $1 }
          | Type ',' ListType { (:) $1 $3 }
+ConstrType :: { ConstrType }
+ConstrType : 'new' Type OptSize { Gramatyka.AbsLatte.Constr $2 $3 }
+OptSize :: { OptSize }
+OptSize : '' { Gramatyka.AbsLatte.NoSiz }
+        | '[' Expr ']' { Gramatyka.AbsLatte.Siz $2 }
 LValue :: { LValue }
 LValue : Ident { Gramatyka.AbsLatte.LVIdent $1 }
        | Expr6 '.' Ident { Gramatyka.AbsLatte.LVMember $1 $3 }
@@ -130,7 +136,7 @@ LValue : Ident { Gramatyka.AbsLatte.LVIdent $1 }
 Expr6 :: { Expr }
 Expr6 : '(' Ident ')null' { Gramatyka.AbsLatte.ECast $2 }
       | LValue { Gramatyka.AbsLatte.ELValue $1 }
-      | 'new' Type { Gramatyka.AbsLatte.EConstr $2 }
+      | 'new' ConstrType { Gramatyka.AbsLatte.EConstr $2 }
       | Integer { Gramatyka.AbsLatte.ELitInt $1 }
       | 'true' { Gramatyka.AbsLatte.ELitTrue }
       | 'false' { Gramatyka.AbsLatte.ELitFalse }

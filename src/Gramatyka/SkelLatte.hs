@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE GADTs #-}
 module Gramatyka.SkelLatte where
 
@@ -34,19 +35,23 @@ transTree t = case t of
   SExp expr -> failure t
   NoInit ident -> failure t
   Init ident expr -> failure t
+  ArrType type' -> failure t
+  IdentType ident -> failure t
   Int  -> failure t
   Str  -> failure t
   Bool  -> failure t
-  IdentType ident -> failure t
-  ArrType type' -> failure t
   Void  -> failure t
-  Fun type' types -> failure t
+  Constr type' optsize -> failure t
+  ArrConstr type' expr -> failure t
+  ClsConstr type' -> failure t
+  NoSiz  -> failure t
+  Siz expr -> failure t
   LVIdent ident -> failure t
   LVMember expr ident -> failure t
   LVArrItem expr0 expr1 -> failure t
   ECast ident -> failure t
   ELValue lvalue -> failure t
-  EConstr type' -> failure t
+  EConstr constrtype -> failure t
   ELitInt integer -> failure t
   ELitTrue  -> failure t
   ELitFalse  -> failure t
@@ -62,7 +67,7 @@ transTree t = case t of
   EOr expr0 expr1 -> failure t
   TECast type' ident -> failure t
   TELValue type' lvalue -> failure t
-  TEConstr type'0 type'1 -> failure t
+  TEConstr type' constrtype -> failure t
   TELitInt type' integer -> failure t
   TELitTrue type' -> failure t
   TELitFalse type' -> failure t
@@ -134,13 +139,23 @@ transItem t = case t of
 
 transType :: Type -> Result
 transType t = case t of
+  ArrType type' -> failure t
+  IdentType ident -> failure t
   Int  -> failure t
   Str  -> failure t
   Bool  -> failure t
-  IdentType ident -> failure t
-  ArrType type' -> failure t
   Void  -> failure t
-  Fun type' types -> failure t
+
+transConstrType :: ConstrType -> Result
+transConstrType t = case t of
+  Constr type' optsize -> failure t
+  ArrConstr type' expr -> failure t
+  ClsConstr type' -> failure t
+
+transOptSize :: OptSize -> Result
+transOptSize t = case t of
+  NoSiz  -> failure t
+  Siz expr -> failure t
 
 transLValue :: LValue -> Result
 transLValue t = case t of
@@ -152,7 +167,7 @@ transExpr :: Expr -> Result
 transExpr t = case t of
   ECast ident -> failure t
   ELValue lvalue -> failure t
-  EConstr type' -> failure t
+  EConstr constrtype -> failure t
   ELitInt integer -> failure t
   ELitTrue  -> failure t
   ELitFalse  -> failure t
@@ -168,7 +183,7 @@ transExpr t = case t of
   EOr expr0 expr1 -> failure t
   TECast type' ident -> failure t
   TELValue type' lvalue -> failure t
-  TEConstr type'0 type'1 -> failure t
+  TEConstr type' constrtype -> failure t
   TELitInt type' integer -> failure t
   TELitTrue type' -> failure t
   TELitFalse type' -> failure t

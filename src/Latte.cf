@@ -38,15 +38,20 @@ While.     Stmt ::= "while" "(" Expr ")" Stmt ;
 SExp.      Stmt ::= Expr  ";" ;
 
 -- Types ---------------------------------------------------
-Int.       Type ::= "int" ;
+ArrType.   Type ::= Type "[]";
+IdentType. Type ::= Ident;
+Int.       Type ::= "int";
 Str.       Type ::= "string" ;
 Bool.      Type ::= "boolean" ;
-IdentType. Type ::= Ident ;
-ArrType.   Type ::= Type "[]";
---ArrTypeWLen. Type ::= Type "[" Expr "]";
 Void.      Type ::= "void" ;
-internal   Fun. Type ::= Type "(" [Type] ")" ;
 separator  Type "," ;
+
+-- ConstrType ----------------------------------------------
+Constr. ConstrType ::= "new" Type OptSize;
+internal ArrConstr. ConstrType ::= "new" Type "[" Expr "]";
+internal ClsConstr. ConstrType ::= "new" Type;
+NoSiz.  OptSize ::= "" ;
+Siz.    OptSize ::= "[" Expr "]";
 
 -- Expressions ---------------------------------------------
 LVIdent.   LValue ::= Ident;
@@ -55,10 +60,9 @@ LVArrItem. LValue ::= Expr6 "[" Expr "]";
 
 ECast.     Expr6 ::= "(" Ident ")null";
 ELValue.    Expr6 ::= LValue;
--- EVar.      Expr6 ::= Ident;
+
 --EMember.   Expr5 ::= Expr5 "." Ident;
-EConstr.   Expr6 ::= "new" Type ;
--- EArrConstr. Expr6 ::= "new" Type "[" Expr "]";
+EConstr.   Expr6 ::= "new" ConstrType;
 ELitInt.   Expr6 ::= Integer ;
 ELitTrue.  Expr6 ::= "true" ;
 ELitFalse. Expr6 ::= "false" ;
@@ -76,8 +80,7 @@ EOr.       Expr  ::= Expr1 "||" Expr ;
 
 internal TECast.     Expr6 ::= "{" Type "}" "(" Ident ")null" ;
 internal TELValue.   Expr6 ::= "{" Type "}" LValue;
-internal TEConstr.   Expr6 ::= "{" Type "}" "new" Type ;
---internal TEArrConstr. Expr6 ::= "{" Type "}" "new" Type "[" Expr "]";
+internal TEConstr.   Expr6 ::= "{" Type "}" "new" ConstrType;
 internal TELitInt.   Expr6 ::= "{" Type "}" Integer ;
 internal TELitTrue.  Expr6 ::= "{" Type "}" "true" ;
 internal TELitFalse. Expr6 ::= "{" Type "}" "false" ;
